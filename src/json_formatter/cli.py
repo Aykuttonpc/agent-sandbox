@@ -5,12 +5,16 @@ from .formatter import JSONFormatter
 def main():
     parser = argparse.ArgumentParser(description="Format JSON from file or stdin")
     parser.add_argument("file", nargs="?", help="JSON file to format (optional, read from stdin if not provided)")
-    parser.add_argument("--indent", type=int, default=2, help="Indentation level (default: 2)")
-    parser.add_argument("--sort-keys", action="store_true", help="Sort object keys alphabetically")
-    
+
+    fmt_group = parser.add_mutually_exclusive_group()
+    fmt_group.add_argument("--compact", action="store_true", help="Compact JSON çıktısı üret (boşluk yok)")
+    fmt_group.add_argument("--indent", type=int, default=2, help="Girinti seviyesi (varsayılan: 2)")
+
+    parser.add_argument("--sort-keys", action="store_true", help="Nesne anahtarlarını alfabetik sırala")
+
     args = parser.parse_args()
-    
-    # Read input
+
+    # Girdi oku
     if args.file:
         try:
             with open(args.file, 'r') as f:
@@ -20,9 +24,9 @@ def main():
             sys.exit(1)
     else:
         data = sys.stdin.read()
-    
-    # Format JSON
-    formatter = JSONFormatter(indent=args.indent, sort_keys=args.sort_keys)
+
+    # JSON formatla
+    formatter = JSONFormatter(indent=args.indent, sort_keys=args.sort_keys, compact=args.compact)
     try:
         result = formatter.format(data)
         print(result)
