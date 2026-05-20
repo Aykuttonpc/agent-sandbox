@@ -2,7 +2,7 @@ import sys
 import os
 import tempfile
 import argparse
-from .formatter import JSONFormatter
+from .formatter import JSONFormatter, format_json
 
 def main():
     parser = argparse.ArgumentParser(description="Format JSON from file or stdin")
@@ -12,7 +12,7 @@ def main():
     fmt_group.add_argument("--compact", action="store_true", help="Compact JSON çıktısı üret (boşluk yok)")
     fmt_group.add_argument("--indent", type=int, default=2, help="Girinti seviyesi (varsayılan: 2)")
 
-    parser.add_argument("--sort-keys", action="store_true", help="Nesne anahtarlarını alfabetik sırala")
+    parser.add_argument("--sort-keys", action="store_true", default=False, help="Nesne anahtarlarını alfabetik sırala")
     parser.add_argument("--in-place", "-i", action="store_true", help="Dosyayı yerinde atomik olarak formatla")
     parser.add_argument("--check", action="store_true", help="Dosyanın formatlanmış olup olmadığını kontrol et (yazmaz)")
 
@@ -44,9 +44,8 @@ def main():
         data = sys.stdin.read()
 
     # JSON formatla
-    formatter = JSONFormatter(indent=args.indent, sort_keys=args.sort_keys, compact=args.compact)
     try:
-        result = formatter.format(data)
+        result = format_json(data, indent=args.indent, sort_keys=args.sort_keys, compact=args.compact)
     except ValueError as e:
         print(f"Error: Invalid JSON - {e}", file=sys.stderr)
         sys.exit(1)

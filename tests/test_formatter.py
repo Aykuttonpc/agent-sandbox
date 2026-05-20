@@ -205,5 +205,45 @@ class TestJSONFormatter(unittest.TestCase):
                 self.assertEqual(cm.exception.code, 2)
                 self.assertIn('--check requires a file argument, not stdin', mock_err.getvalue())
 
+    # --- sort_keys yeni testleri ---
+
+    def test_sort_keys_orders_keys_alphabetically(self):
+        """sort_keys=True ile {"b": 1, "a": 2} girdisinde anahtarlar alfabetik sırada çıkmalı"""
+        from json_formatter import format_json
+        data = '{"b": 1, "a": 2}'
+        result = format_json(data, sort_keys=True)
+        # "a" anahtarı çıktıda "b"den önce gelmelidir
+        self.assertLess(result.index('"a"'), result.index('"b"'))
+        self.assertIn('"a": 2', result)
+        self.assertIn('"b": 1', result)
+
+    def test_compact_and_sort_keys_single_line_sorted(self):
+        """compact=True, sort_keys=True birlikte tek satır ve sıralı anahtar üretmeli"""
+        from json_formatter import format_json
+        data = '{"b": 1, "a": 2}'
+        result = format_json(data, compact=True, sort_keys=True)
+        self.assertNotIn('\n', result)
+        self.assertEqual(result, '{"a":2,"b":1}')
+
+    def test_in_place_sort_keys_writes_sorted_json(self):
+        """--in-place --sort-keys atomik yazma yolundan geçerek sıralı JSON yazdırmalı"""
+        from json_formatter.cli import main
+        raw = '{"b": 1, "a": 2}'
+        with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
+            f.write(raw)
+            tmp_path = f.name
+        try:
+            with patch('sys.argv', ['json-formatter', '--in-place', '--sort-keys', tmp_path]):
+                main()
+            with open(tmp_path, 'r') as f:
+                content = f.read()
+            # Anahtarlar alfabetik sırada olmalı: "a" önce, "b" sonra
+            self.assertLess(content.index('"a"'), content.index('"b"'))
+            self.assertIn('\n', content)
+            self.assertIn('"a": 2', content)
+            self.assertIn('"b": 1', content)
+        finally:
+            os.unlink(tmp_path)
+
 if __name__ == '__main__':
     unittest.main()

@@ -1,3 +1,3 @@
-from .formatter import JSONFormatter
+from .formatter import JSONFormatter, format_json
 
-__all__ = ["JSONFormatter"]
+__all__ = ["JSONFormatter", "format_json"]

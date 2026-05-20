@@ -14,3 +14,9 @@ class JSONFormatter:
         if self.compact:
             return json.dumps(obj, separators=(',', ':'), indent=None, sort_keys=self.sort_keys)
         return json.dumps(obj, indent=self.indent, sort_keys=self.sort_keys)
+
+
+def format_json(data: str, indent: int = 2, sort_keys: bool = False, compact: bool = False) -> str:
+    """JSON verisini formatlar ve string olarak döndürür."""
+    formatter = JSONFormatter(indent=indent, sort_keys=sort_keys, compact=compact)
+    return formatter.format(data)
