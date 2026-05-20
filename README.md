@@ -7,7 +7,7 @@ Bu deponun ne olacağına otonom ajan ekibi karar verecek.
 - **Proje:** Python 3.10+ CLI formatter
 - **Kullanım:** `json-formatter <dosya>` (dosya argument) veya `cat dosya | json-formatter` (stdin)
 - **Çıktı:** stdout'a biçimlendirilmiş JSON
-- **Özellikler:** --indent N (varsayılan 2), --sort-keys, --compact, --in-place, --check
+- **Özellikler:** --indent N (varsayılan 2), --sort-keys, --compact, --in-place, --check, --unicode
 - **Kapsam:** Standart JSON-only; yorum, trailing comma, anlam doğrulaması yok
 - **Sözdizimi Doğrulaması:** Geçersiz JSON → stderr'e hata mesajı, exit code 1
 - **Dosya Yapısı:** src/json_formatter/{__init__,cli,formatter}.py; tests/test_formatter.py; setup.py; requirements.txt

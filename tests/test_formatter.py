@@ -245,5 +245,23 @@ class TestJSONFormatter(unittest.TestCase):
         finally:
             os.unlink(tmp_path)
 
+    # --- --unicode / ensure_ascii testleri ---
+
+    def test_ensure_ascii_default_escapes_non_ascii(self):
+        """ensure_ascii=True (varsayılan) ile 'ü' karakteri \\u00fc olarak escape edilmeli"""
+        from json_formatter import format_json
+        data = '{"key": "ü"}'
+        result = format_json(data)
+        self.assertIn('\\u00fc', result)
+        self.assertNotIn('ü', result)
+
+    def test_ensure_ascii_false_preserves_unicode(self):
+        """ensure_ascii=False ile 'ü' karakteri olduğu gibi korunmalı"""
+        from json_formatter import format_json
+        data = '{"key": "ü"}'
+        result = format_json(data, ensure_ascii=False)
+        self.assertIn('ü', result)
+        self.assertNotIn('\\u00fc', result)
+
 if __name__ == '__main__':
     unittest.main()

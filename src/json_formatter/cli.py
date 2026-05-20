@@ -15,6 +15,7 @@ def main():
     parser.add_argument("--sort-keys", action="store_true", default=False, help="Nesne anahtarlarını alfabetik sırala")
     parser.add_argument("--in-place", "-i", action="store_true", help="Dosyayı yerinde atomik olarak formatla")
     parser.add_argument("--check", action="store_true", help="Dosyanın formatlanmış olup olmadığını kontrol et (yazmaz)")
+    parser.add_argument("--unicode", action="store_true", help="Non-ASCII karakterleri escape etmeden yaz (--check ile birlikte kullanıldığında etkisizdir)")
 
     args = parser.parse_args()
 
@@ -45,7 +46,7 @@ def main():
 
     # JSON formatla
     try:
-        result = format_json(data, indent=args.indent, sort_keys=args.sort_keys, compact=args.compact)
+        result = format_json(data, indent=args.indent, sort_keys=args.sort_keys, compact=args.compact, ensure_ascii=not args.unicode)
     except ValueError as e:
         print(f"Error: Invalid JSON - {e}", file=sys.stderr)
         sys.exit(1)
