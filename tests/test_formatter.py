@@ -1,6 +1,7 @@
 import unittest
 import os
 import tempfile
+from io import StringIO
 from unittest.mock import patch
 from json_formatter import JSONFormatter
 
@@ -124,6 +125,85 @@ class TestJSONFormatter(unittest.TestCase):
             self.assertEqual(content, original)
         finally:
             os.unlink(tmp_path)
+
+    # --- --check testleri ---
+
+    def test_check_already_formatted_file_exits_0(self):
+        """Zaten formatlanmış dosya --check ile exit 0 döndürmeli"""
+        from json_formatter.cli import main
+        formatter = JSONFormatter()
+        raw = '{"name":"John","age":30}'
+        formatted = formatter.format(raw)
+        with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
+            f.write(formatted)
+            tmp_path = f.name
+        try:
+            with patch('sys.argv', ['json-formatter', '--check', tmp_path]):
+                with self.assertRaises(SystemExit) as cm:
+                    main()
+            self.assertEqual(cm.exception.code, 0)
+        finally:
+            os.unlink(tmp_path)
+
+    def test_check_unformatted_file_exits_1_with_stderr(self):
+        """Formatlanmamış dosya --check ile exit 1 ve stderr mesajı döndürmeli"""
+        from json_formatter.cli import main
+        with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
+            f.write('{"b":2,"a":1}')
+            tmp_path = f.name
+        try:
+            with patch('sys.argv', ['json-formatter', '--check', tmp_path]):
+                with patch('sys.stderr', new_callable=StringIO) as mock_err:
+                    with self.assertRaises(SystemExit) as cm:
+                        main()
+                    self.assertEqual(cm.exception.code, 1)
+                    self.assertIn('File is not formatted', mock_err.getvalue())
+        finally:
+            os.unlink(tmp_path)
+
+    def test_check_invalid_json_exits_1(self):
+        """Geçersiz JSON + --check kombinasyonunda exit 1 alınmalı"""
+        from json_formatter.cli import main
+        with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
+            f.write('{invalid json}')
+            tmp_path = f.name
+        try:
+            with patch('sys.argv', ['json-formatter', '--check', tmp_path]):
+                with self.assertRaises(SystemExit) as cm:
+                    main()
+            self.assertEqual(cm.exception.code, 1)
+        finally:
+            os.unlink(tmp_path)
+
+    def test_check_with_in_place_file_unchanged_and_warning(self):
+        """--check --in-place birlikte verilince dosya değişmemeli ve stderr'de uyarı olmalı"""
+        from json_formatter.cli import main
+        original = '{"b":2,"a":1}'
+        with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
+            f.write(original)
+            tmp_path = f.name
+        try:
+            with patch('sys.argv', ['json-formatter', '--check', '--in-place', tmp_path]):
+                with patch('sys.stderr', new_callable=StringIO) as mock_err:
+                    with self.assertRaises(SystemExit):
+                        main()
+                    stderr_output = mock_err.getvalue()
+            self.assertIn('Warning: --in-place ignored when --check is active', stderr_output)
+            with open(tmp_path, 'r') as f:
+                content = f.read()
+            self.assertEqual(content, original)
+        finally:
+            os.unlink(tmp_path)
+
+    def test_check_with_stdin_exits_2_with_error(self):
+        """stdin + --check kombinasyonunda exit 2 ve stderr'de hata mesajı olmalı"""
+        from json_formatter.cli import main
+        with patch('sys.argv', ['json-formatter', '--check']):
+            with patch('sys.stderr', new_callable=StringIO) as mock_err:
+                with self.assertRaises(SystemExit) as cm:
+                    main()
+                self.assertEqual(cm.exception.code, 2)
+                self.assertIn('--check requires a file argument, not stdin', mock_err.getvalue())
 
 if __name__ == '__main__':
     unittest.main()

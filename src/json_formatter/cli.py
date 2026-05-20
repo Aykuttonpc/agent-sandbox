@@ -14,8 +14,18 @@ def main():
 
     parser.add_argument("--sort-keys", action="store_true", help="Nesne anahtarlarını alfabetik sırala")
     parser.add_argument("--in-place", "-i", action="store_true", help="Dosyayı yerinde atomik olarak formatla")
+    parser.add_argument("--check", action="store_true", help="Dosyanın formatlanmış olup olmadığını kontrol et (yazmaz)")
 
     args = parser.parse_args()
+
+    # --check stdin ile kullanılamaz
+    if args.check and not args.file:
+        print("Error: --check requires a file argument, not stdin", file=sys.stderr)
+        sys.exit(2)
+
+    # --check ve --in-place birlikte verilirse uyarı ver, yine de yalnızca check yap
+    if args.check and args.in_place:
+        print("Warning: --in-place ignored when --check is active", file=sys.stderr)
 
     # --in-place yalnızca dosya moduyla kullanılabilir
     if args.in_place and not args.file:
@@ -40,6 +50,14 @@ def main():
     except ValueError as e:
         print(f"Error: Invalid JSON - {e}", file=sys.stderr)
         sys.exit(1)
+
+    # --check modu: karşılaştır, asla dosyaya yazma
+    if args.check:
+        if result.strip() == data.strip():
+            sys.exit(0)
+        else:
+            print(f"File is not formatted: {args.file}", file=sys.stderr)
+            sys.exit(1)
 
     # Çıktı yaz
     if args.in_place:
