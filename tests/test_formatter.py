@@ -1,4 +1,6 @@
 import unittest
+import os
+import tempfile
 from unittest.mock import patch
 from json_formatter import JSONFormatter
 
@@ -74,6 +76,54 @@ class TestJSONFormatter(unittest.TestCase):
         with patch('sys.argv', ['json-formatter', '--compact', '--indent', '2']):
             with self.assertRaises(SystemExit):
                 main()
+
+    # --- --in-place testleri ---
+
+    def test_in_place_formats_valid_json_file(self):
+        """Geçerli JSON içeren geçici dosya --in-place ile formatlanınca içerik güncellenmeli"""
+        from json_formatter.cli import main
+        raw = '{"b":2,"a":1}'
+        with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
+            f.write(raw)
+            tmp_path = f.name
+        try:
+            with patch('sys.argv', ['json-formatter', '--in-place', tmp_path]):
+                main()
+            with open(tmp_path, 'r') as f:
+                content = f.read()
+            # Formatlanmış çıktı girintili olmalı
+            self.assertIn('"b": 2', content)
+            self.assertIn('"a": 1', content)
+            self.assertIn('\n', content)
+        finally:
+            os.unlink(tmp_path)
+
+    def test_in_place_with_stdin_exits_code_1(self):
+        """stdin modunda --in-place kullanılınca exit code 1 alınmalı"""
+        from json_formatter.cli import main
+        with patch('sys.argv', ['json-formatter', '--in-place']):
+            with self.assertRaises(SystemExit) as cm:
+                main()
+        self.assertEqual(cm.exception.code, 1)
+
+    def test_in_place_invalid_json_preserves_original(self):
+        """Geçersiz JSON + --in-place kombinasyonunda orijinal dosya içeriği bozulmamalı"""
+        from json_formatter.cli import main
+        original = '{invalid json}'
+        with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
+            f.write(original)
+            tmp_path = f.name
+        try:
+            with patch('sys.argv', ['json-formatter', '--in-place', tmp_path]):
+                with self.assertRaises(SystemExit) as cm:
+                    main()
+            self.assertEqual(cm.exception.code, 1)
+            with open(tmp_path, 'r') as f:
+                content = f.read()
+            # Orijinal içerik değişmemiş olmalı
+            self.assertEqual(content, original)
+        finally:
+            os.unlink(tmp_path)
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,4 +1,6 @@
 import sys
+import os
+import tempfile
 import argparse
 from .formatter import JSONFormatter
 
@@ -11,8 +13,14 @@ def main():
     fmt_group.add_argument("--indent", type=int, default=2, help="Girinti seviyesi (varsayılan: 2)")
 
     parser.add_argument("--sort-keys", action="store_true", help="Nesne anahtarlarını alfabetik sırala")
+    parser.add_argument("--in-place", "-i", action="store_true", help="Dosyayı yerinde atomik olarak formatla")
 
     args = parser.parse_args()
+
+    # --in-place yalnızca dosya moduyla kullanılabilir
+    if args.in_place and not args.file:
+        print("Error: --in-place requires a file argument", file=sys.stderr)
+        sys.exit(1)
 
     # Girdi oku
     if args.file:
@@ -29,10 +37,24 @@ def main():
     formatter = JSONFormatter(indent=args.indent, sort_keys=args.sort_keys, compact=args.compact)
     try:
         result = formatter.format(data)
-        print(result)
     except ValueError as e:
         print(f"Error: Invalid JSON - {e}", file=sys.stderr)
         sys.exit(1)
+
+    # Çıktı yaz
+    if args.in_place:
+        # Atomik yazma: önce hedef dizinde geçici dosyaya yaz, sonra os.replace() ile değiştir
+        dir_name = os.path.dirname(os.path.abspath(args.file))
+        tmp_fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix='.tmp')
+        try:
+            with os.fdopen(tmp_fd, 'w') as tmp:
+                tmp.write(result)
+            os.replace(tmp_path, args.file)
+        except Exception:
+            os.unlink(tmp_path)
+            raise
+    else:
+        print(result)
 
 if __name__ == "__main__":
     main()
