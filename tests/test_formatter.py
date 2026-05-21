@@ -263,5 +263,125 @@ class TestJSONFormatter(unittest.TestCase):
         self.assertIn('ü', result)
         self.assertNotIn('\\u00fc', result)
 
+    # --- çoklu dosya testleri (5 yeni test) ---
+
+    def test_no_args_reads_from_stdin(self):
+        """Argümansız çağrıda stdin'den okuyup stdout'a yazmalı (regression)"""
+        from json_formatter.cli import main
+        input_data = '{"x":1}'
+        with patch('sys.argv', ['json-formatter']):
+            with patch('sys.stdin', StringIO(input_data)):
+                with patch('sys.stdout', new_callable=StringIO) as mock_out:
+                    main()
+                    output = mock_out.getvalue()
+        self.assertIn('"x": 1', output)
+
+    def test_in_place_two_valid_files(self):
+        """--in-place iki geçerli dosyada her ikisi de bağımsız formatlanmalı"""
+        from json_formatter.cli import main
+        files = []
+        try:
+            for raw in ['{"b":1,"a":2}', '{"z":9}']:
+                f = tempfile.NamedTemporaryFile('w', suffix='.json', delete=False)
+                f.write(raw)
+                f.close()
+                files.append(f.name)
+            with patch('sys.argv', ['json-formatter', '--in-place'] + files):
+                main()  # başarılı → SystemExit yok
+            with open(files[0]) as f:
+                c1 = f.read()
+            with open(files[1]) as f:
+                c2 = f.read()
+            self.assertIn('\n', c1)
+            self.assertIn('"b": 1', c1)
+            self.assertIn('\n', c2)
+            self.assertIn('"z": 9', c2)
+        finally:
+            for fp in files:
+                if os.path.exists(fp):
+                    os.unlink(fp)
+
+    def test_in_place_one_invalid_skips_and_exits_1(self):
+        """--in-place biri geçersiz JSON iken hatalı atlanır, geçerli yazılır, exit 1 döner"""
+        from json_formatter.cli import main
+        files = []
+        try:
+            # İlk dosya geçersiz JSON, ikinci dosya geçerli
+            for raw in ['{bad json}', '{"ok":true}']:
+                f = tempfile.NamedTemporaryFile('w', suffix='.json', delete=False)
+                f.write(raw)
+                f.close()
+                files.append(f.name)
+            with patch('sys.argv', ['json-formatter', '--in-place'] + files):
+                with patch('sys.stderr', new_callable=StringIO) as mock_err:
+                    with self.assertRaises(SystemExit) as cm:
+                        main()
+                    self.assertEqual(cm.exception.code, 1)
+                    self.assertIn('Invalid JSON', mock_err.getvalue())
+            # Geçersiz dosya değişmemiş olmalı
+            with open(files[0]) as f:
+                self.assertEqual(f.read(), '{bad json}')
+            # Geçerli dosya formatlanmış olmalı
+            with open(files[1]) as f:
+                content = f.read()
+            self.assertIn('\n', content)
+            self.assertIn('"ok": true', content)
+        finally:
+            for fp in files:
+                if os.path.exists(fp):
+                    os.unlink(fp)
+
+    def test_check_mixed_ok_fail_two_files(self):
+        """--check karışık dosyalarda OK/FAIL stdout'a yazdırılmalı, exit 1 dönmeli"""
+        from json_formatter.cli import main
+        formatter = JSONFormatter()
+        unformatted = '{"b":2,"a":1}'
+        formatted = formatter.format(unformatted)
+        files = []
+        try:
+            # İlk dosya zaten formatlanmış → OK bekleniyor
+            f1 = tempfile.NamedTemporaryFile('w', suffix='.json', delete=False)
+            f1.write(formatted)
+            f1.close()
+            files.append(f1.name)
+            # İkinci dosya formatlanmamış → FAIL bekleniyor
+            f2 = tempfile.NamedTemporaryFile('w', suffix='.json', delete=False)
+            f2.write(unformatted)
+            f2.close()
+            files.append(f2.name)
+            with patch('sys.argv', ['json-formatter', '--check'] + files):
+                with patch('sys.stdout', new_callable=StringIO) as mock_out:
+                    with self.assertRaises(SystemExit) as cm:
+                        main()
+                    output = mock_out.getvalue()
+            self.assertEqual(cm.exception.code, 1)
+            self.assertIn('OK:', output)
+            self.assertIn('FAIL:', output)
+        finally:
+            for fp in files:
+                if os.path.exists(fp):
+                    os.unlink(fp)
+
+    def test_stdout_mode_two_files_exits_1(self):
+        """Stdout modunda 2 dosya verilince stderr'e hata yazıp exit 1 dönmeli"""
+        from json_formatter.cli import main
+        files = []
+        try:
+            for raw in ['{"a":1}', '{"b":2}']:
+                f = tempfile.NamedTemporaryFile('w', suffix='.json', delete=False)
+                f.write(raw)
+                f.close()
+                files.append(f.name)
+            with patch('sys.argv', ['json-formatter'] + files):
+                with patch('sys.stderr', new_callable=StringIO) as mock_err:
+                    with self.assertRaises(SystemExit) as cm:
+                        main()
+                    self.assertEqual(cm.exception.code, 1)
+                    self.assertIn('stdout mode', mock_err.getvalue())
+        finally:
+            for fp in files:
+                if os.path.exists(fp):
+                    os.unlink(fp)
+
 if __name__ == '__main__':
     unittest.main()
