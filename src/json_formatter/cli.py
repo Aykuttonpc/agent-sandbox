@@ -102,13 +102,18 @@ def main():
             # Dosya varlığı kontrolü
             if not os.path.isfile(filepath):
                 print(f"FAIL: {filepath}", file=sys.stdout)
-                print(f"Error: File not found '{filepath}'", file=sys.stderr)
+                print(f"Error: File '{filepath}' not found", file=sys.stderr)
                 any_fail = True
                 continue
             
             try:
                 with open(filepath, 'r') as f:
                     data = f.read()
+            except PermissionError:
+                print(f"FAIL: {filepath}", file=sys.stdout)
+                print(f"Error: Permission denied for '{filepath}'", file=sys.stderr)
+                any_fail = True
+                continue
             except OSError as e:
                 print(f"FAIL: {filepath}", file=sys.stdout)
                 print(f"Error: Cannot read '{filepath}' - {e}", file=sys.stderr)
@@ -132,6 +137,10 @@ def main():
             try:
                 with open(filepath, 'r') as f:
                     data = f.read()
+            except PermissionError:
+                print(f"Error: Permission denied for '{filepath}'", file=sys.stderr)
+                any_fail = True
+                continue
             except OSError as e:
                 print(f"Error: Cannot read '{filepath}' - {e}", file=sys.stderr)
                 any_fail = True
@@ -165,6 +174,12 @@ def main():
     try:
         with open(filepath, 'r') as f:
             data = f.read()
+    except FileNotFoundError:
+        print(f"Error: File '{filepath}' not found", file=sys.stderr)
+        sys.exit(2)
+    except PermissionError:
+        print(f"Error: Permission denied for '{filepath}'", file=sys.stderr)
+        sys.exit(2)
     except OSError as e:
         print(f"Error: Cannot read '{filepath}' - {e}", file=sys.stderr)
         sys.exit(1)

@@ -91,7 +91,7 @@ class TestJSONFormatter(unittest.TestCase):
     # --- --in-place testleri ---
 
     def test_in_place_formats_valid_json_file(self):
-        """Geçerli JSON içeren geçici dosya --in-place ile formatlanınca içerik güncellenmeli"""
+        """Geçerli JSON içeren geçici dosya --in-place ile formatlanıldığında içerik güncellenmeli"""
         from json_formatter.cli import main
         raw = '{"b":2,"a":1}'
         with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
@@ -602,14 +602,15 @@ def test_empty_file():
 
 
 def test_file_not_found():
-    """Dosya bulunamadığında CLI stderr'e hata mesajı yazıp exit 1 dönmeli."""
-    from json_formatter.cli import main
-    with patch('sys.argv', ['json-formatter', '/nonexistent/file.json']):
-        with patch('sys.stderr', new_callable=StringIO) as mock_err:
-            with pytest.raises(SystemExit) as exc_info:
-                main()
-            assert exc_info.value.code == 1
-            assert 'Cannot read' in mock_err.getvalue()
+    """Dosya bulunamadığında CLI exit code 2 döndürmeli ve stderr'e hata mesajı yazmalı."""
+    import sys
+    result = subprocess.run(
+        [sys.executable, '-m', 'json_formatter', '/nonexistent.json'],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2
+    assert "not found" in result.stderr.lower()
 
 
 def test_version_flag_existing_capsys(capsys):
