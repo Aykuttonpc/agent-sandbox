@@ -538,6 +538,27 @@ class TestCLIColor:
             f'Mavi renkte çıplak true beklenmiyor; stdout: {repr(stdout)}'
         )
 
+    def test_explicit_color_flag_overrides_non_tty_detection(self):
+        """--color açıkça verilince TTY-olmayan (pipe) ortamda dahi ANSI kodları üretilmeli.
+
+        capture_output=True, subprocess stdout'unu bir pipe'a bağlar; bu nedenle
+        süreç içinde should_colorize() → False döndürür. Ancak --color açıkça
+        verildiği için args.color is not None (True) koşulu sağlanır ve
+        should_colorize() devre dışı kalır; çıktı ANSI kodları içermelidir.
+        """
+        result = subprocess.run(
+            [sys.executable, '-m', 'json_formatter', '--color'],
+            input='{"a": 1, "b": true}',
+            capture_output=True,   # stdout pipe → isatty() = False
+            text=True
+        )
+        assert result.returncode == 0
+        # --color açıkça verildi; pipe olmasına rağmen ANSI kodu görünmeli
+        assert '\x1b[' in result.stdout, (
+            f"TTY-olmayan pipe ortamında --color ile ANSI kodu bekleniyor; "
+            f"stdout: {repr(result.stdout)}"
+        )
+
 
 class TestCLIErrors:
     """Hatalı giriş senaryolarını test et: var olmayan dosya ve negatif --indent."""

@@ -5,7 +5,7 @@ import tempfile
 import argparse
 import glob as _glob
 from .formatter import JSONFormatter, format_json, is_already_formatted, is_formatted
-from .color import colorize_json
+from .color import colorize_json, should_colorize
 from .diff import diff_format
 from json_formatter import __version__
 
@@ -51,7 +51,9 @@ def build_parser():
     parser.add_argument("--unicode", action="store_true", help="Non-ASCII karakterleri escape etme")
 
     color_group = parser.add_mutually_exclusive_group()
-    color_group.add_argument("--color", action="store_true", default=False, help="Renkli çıktıyı zorla aç")
+    # default=None: flag verilmediğinde None kalır → should_colorize() devreye girer.
+    # --color verildiğinde True olur ve TTY kontrolü olmaksızın renk zorlanır.
+    color_group.add_argument("--color", action="store_true", default=None, help="Renkli çıktıyı zorla aç")
     color_group.add_argument("--no-color", dest="no_color", action="store_true", default=False, help="Renkli çıktıyı zorla kapat")
 
     return parser
@@ -88,16 +90,15 @@ def main():
     # Renk kararı:
     #   --in-place / --check  → renk yok (dosyaya yazılıyor veya sade metin bekleniyor)
     #   --color               → TTY kontrolü olmaksızın her zaman renkli
+    #                           (args.color == True, None değil)
     #   --no-color            → her zaman renksiz
-    #   (ikisi de yok)        → sys.stdout.isatty() kontrolü
+    #   (ikisi de yok)        → args.color is None → should_colorize() ile TTY algılama
     if args.in_place or args.check:
         use_color = False
-    elif args.color:
-        use_color = True
     elif args.no_color:
         use_color = False
     else:
-        use_color = sys.stdout.isatty()
+        use_color = args.color if args.color is not None else should_colorize()
 
     fmt_kwargs = dict(sort_keys=args.sort_keys, compact=args.compact, unicode=args.unicode, tab=args.tab)
     if not args.compact and not args.tab:

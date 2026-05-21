@@ -15,6 +15,8 @@ Renk haritası:
   { } [ ] parantezleri -> beyaz  \x1b[37m
 """
 
+import sys
+
 YELLOW = "\x1b[33m"   # key
 GREEN  = "\x1b[32m"   # string value
 CYAN   = "\x1b[36m"   # number
@@ -23,13 +25,29 @@ WHITE  = "\x1b[37m"   # bracket
 RESET  = "\x1b[0m"
 
 
+def should_colorize(stream=sys.stdout) -> bool:
+    """Verilen akışın renklendirmeye uygun olup olmadığını döndürür.
+
+    Akış ``isatty`` metoduna sahipse ve bu metot ``True`` döndürüyorsa
+    (yani bir terminale / TTY'ye bağlıysa) ``True``, aksi hâlde
+    (pipe, dosyaya yönlendirilmiş, ``isatty`` metodu yoksa) ``False`` döndürür.
+
+    Args:
+        stream: Kontrol edilecek G/Ç akışı (varsayılan: sys.stdout).
+
+    Returns:
+        Akış bir terminale bağlıysa True, değilse False.
+    """
+    return hasattr(stream, 'isatty') and stream.isatty()
+
+
 def colorize_json(text: str) -> str:
     """Formatlanmış JSON string'ini token-aware durum makinesiyle renklendirir.
 
     Algoritma:
     - String token'ları (``"..."``), açılış tırnağından kapanış tırnağına
       kadar bütünüyle okunur; içindeki karakterler ayrı token olarak
-      işlenmez. Kaçış dizileri (``\\``) iki karakter birden atlanarak
+      işlenmez. Kaçış dizileri (``\\\\"``) iki karakter birden atlanarak
       doğru şekilde atlanır.
     - Okunan string token'ının key mi value mı olduğu, token'dan sonraki
       ilk boşluk-dışı karakterin ``:`` olup olmadığına bakılarak belirlenir.

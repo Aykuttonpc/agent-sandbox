@@ -11,6 +11,10 @@ Kapsanan fonksiyonlar
                 BLUE=\x1b[34m   WHITE=\x1b[37m   RESET=\x1b[0m
     – Kırmızı (\x1b[31m / RED) bu modülde TANIMLI DEĞİLDİR.
 
+* src/json_formatter/color.py :: should_colorize(stream=sys.stdout) -> bool
+    – Verilen akış bir TTY ise True, değilse (pipe, dosya) False döndürür.
+    – hasattr(stream, 'isatty') and stream.isatty() mantığıyla çalışır.
+
 * src/json_formatter/diff.py :: diff_format(original, formatted,
                                             filename, use_color) -> str
     – '+' satırları  → \x1b[32m (yeşil)  (use_color=True ile)
@@ -19,8 +23,8 @@ Kapsanan fonksiyonlar
     – NO_COLOR env var: caller tarafından kontrol edilmeli
                         (use_color=False olarak geçilmeli).
 
-Beş zorunlu + üç ek test
--------------------------
+Beş zorunlu + üç ek + iki yeni test
+-------------------------------------
 1. color=True ile '+' satırı \x1b[32m içerir          → TestDiffFormatColor
 2. color=True ile '-' satırı \x1b[31m içerir          → TestDiffFormatColor
 3. color=False ile düz metin döner (ANSI yok)          → TestDiffFormatColor
@@ -30,14 +34,17 @@ Beş zorunlu + üç ek test
 6. JSON string değeri \x1b[32m içerir                 → TestColorizeJson
 7. JSON anahtar \x1b[33m içerir                       → TestColorizeJson
 8. Düz metin (JSON token yok) değişmeden döner         → TestColorizeJson
+9. TTY akışında should_colorize() True döndürür        → TestShouldColorize
+10. Pipe akışında should_colorize() False döndürür     → TestShouldColorize
 """
 
 import os
 import re
+import sys
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
-from json_formatter.color import colorize_json
+from json_formatter.color import colorize_json, should_colorize
 from json_formatter.diff import diff_format
 
 # Minimal diff üretmek için birbirinden farklı iki JSON satırı
@@ -183,6 +190,45 @@ class TestColorizeJson(unittest.TestCase):
             '\x1b[',
             result,
             "Düz metin ANSI kodu içermemeli",
+        )
+
+
+class TestShouldColorize(unittest.TestCase):
+    """should_colorize() TTY algılama davranışı – testler 9-10."""
+
+    # ------------------------------------------------------------------
+    # Test 9 – TTY akışında should_colorize() True döndürür
+    # ------------------------------------------------------------------
+    def test_tty_stream_returns_true(self):
+        """(9) isatty() → True olan mock akışta should_colorize() True döndürmeli.
+
+        Terminale bağlı bir stdout'u simüle eden MagicMock kullanılır;
+        should_colorize() bu akışı TTY olarak tanımalı ve True döndürmeli.
+        """
+        mock_stream = MagicMock()
+        mock_stream.isatty.return_value = True
+        result = should_colorize(mock_stream)
+        self.assertTrue(
+            result,
+            f"TTY akışında should_colorize() True bekleniyor; alınan: {result!r}",
+        )
+
+    # ------------------------------------------------------------------
+    # Test 10 – Pipe (TTY olmayan) akışında should_colorize() False döndürür
+    # ------------------------------------------------------------------
+    def test_pipe_stream_returns_false(self):
+        """(10) isatty() → False olan mock akışta should_colorize() False döndürmeli.
+
+        Pipe'a ya da dosyaya yönlendirilmiş stdout'u simüle eden MagicMock
+        kullanılır; should_colorize() bu akışı TTY değil olarak tanımalı
+        ve False döndürmeli.
+        """
+        mock_stream = MagicMock()
+        mock_stream.isatty.return_value = False
+        result = should_colorize(mock_stream)
+        self.assertFalse(
+            result,
+            f"Pipe akışında should_colorize() False bekleniyor; alınan: {result!r}",
         )
 
 
