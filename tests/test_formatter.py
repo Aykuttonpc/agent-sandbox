@@ -512,6 +512,14 @@ class TestJSONFormatter(unittest.TestCase):
         expected = '{}'
         self.assertEqual(result, expected)
 
+    def test_format_compact_nested(self):
+        """Compact mode ile nested JSON'da tüm newline ve fazla boşluk kaldırılmalı"""
+        with open('tests/data/nested.json', 'r') as f:
+            json_str = f.read()
+        result = JSONFormatter(compact=True).format(json_str)
+        assert '\n' not in result, "Compact çıktı newline içermemeli"
+        assert '\r' not in result, "Compact çıktı carriage return içermemeli"
+
 
 # --- YENİ TESTLER: is_formatted() fonksiyonu (beş test) ---
 
