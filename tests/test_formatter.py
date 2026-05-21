@@ -1,10 +1,19 @@
 import unittest
 import os
 import tempfile
+import subprocess
 import pytest
 from io import StringIO
 from unittest.mock import patch
 from json_formatter import JSONFormatter
+
+
+def test_version_flag():
+    """--version bayrağı: subprocess ile çalıştırıldığında exit kodu 0 ve stdout'ta '0.1.0' olmalı."""
+    result = subprocess.run(["python", "-m", "json_formatter", "--version"], capture_output=True, text=True)
+    assert result.returncode == 0
+    assert "0.1.0" in result.stdout
+
 
 class TestJSONFormatter(unittest.TestCase):
 
@@ -570,7 +579,7 @@ def test_file_not_found():
             assert 'Cannot read' in mock_err.getvalue()
 
 
-def test_version_flag(capsys):
+def test_version_flag_existing_capsys(capsys):
     """--version bayrağı: exit kodu 0 olmalı ve __version__ stdout'ta görünmeli."""
     from json_formatter.cli import main
     from json_formatter import __version__
@@ -674,9 +683,7 @@ def test_is_already_formatted_compact_mode_true_and_false():
 def test_check_subprocess_unformatted_file_exits_1_stderr_not_formatted():
     """(5) subprocess --check ile formatlanmamış dosyada returncode==1, stderr 'not formatted' içermeli."""
     import sys
-    import subprocess
     import tempfile
-    import os
     with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
         f.write('{"b":2,"a":1}')
         tmp_path = f.name
@@ -928,7 +935,6 @@ def test_tab_and_indent_mutually_exclusive_subprocess_exits_2():
     """(2) subprocess ile --tab --indent 4 birlikte verildiğinde exit code 2 dönmeli
     ve stderr.lower() içinde 'not allowed' bulunmalı."""
     import sys
-    import subprocess
     result = subprocess.run(
         [sys.executable, '-m', 'json_formatter', '--tab', '--indent', '4'],
         capture_output=True,
