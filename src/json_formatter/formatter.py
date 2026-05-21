@@ -1,5 +1,6 @@
 import json
 import re
+from typing import Any
 
 
 class JSONFormatter:
@@ -38,30 +39,58 @@ def is_already_formatted(content: str, **opts) -> bool:
         return False
 
 
-def colorize_json(text: str) -> str:
-    """Biçimlendirilmiş JSON metnine ANSI renk kodları uygular.
+def colorize_json(obj: Any, indent: int = 2, sort_keys: bool = False) -> str:
+    """Parse edilmiş Python nesnesini renkli JSON string'e dönüştürür.
 
-    Giriş olarak json.dumps tarafından üretilmiş (sözdizimsel olarak geçerli,
-    biçimlendirilmiş) JSON metni alır; dört regex kalıbını sırayla uygulayarak
-    terminalde renkli görüntülenmesini sağlar.
+    Ham metin değil, json.loads() veya doğrudan oluşturulmuş Python nesnesi alır;
+    recursive _walk() iç fonksiyonuyla nesnenin her düğümüne uygun ANSI rengi uygular.
 
     Renk haritası:
-        dict anahtarları  → cyan   (\033[36m)
-        string değerleri  → yeşil  (\033[32m)
-        sayı değerleri    → sarı   (\033[33m)
-        true/false/null   → mavi   (\033[34m)
+        dict anahtarları  -> sarı  (\033[33m)
+        string değerleri  -> yeşil (\033[32m)
+        sayı değerleri    -> cyan  (\033[36m)
+        bool / null       -> mavi  (\033[34m)
+
+    Her renk bloğunun ardından \033[0m reset kodu gelir.
     """
-    # (1) Dict anahtarları: "key": → cyan; ":" reset dışında bırakılır,
-    #     böylece (2) ve (3) kalıpları ":" çıpasını hâlâ bulabilir.
-    text = re.sub(r'"([^"]+)":', r'\033[36m"\1"\033[0m:', text)
+    YELLOW = "\033[33m"
+    GREEN  = "\033[32m"
+    CYAN   = "\033[36m"
+    BLUE   = "\033[34m"
+    RESET  = "\033[0m"
 
-    # (2) String değerleri: : "val" → yeşil (":"+boşluk kısmı renksiz kalır)
-    text = re.sub(r'(:\s*)"([^"]*)"', r'\1\033[32m"\2"\033[0m', text)
+    def _walk(node: Any, level: int = 0) -> str:
+        pad       = " " * indent * level
+        child_pad = " " * indent * (level + 1)
 
-    # (3) Sayı değerleri: : 42 veya : -3.14 → sarı
-    text = re.sub(r'(:\s*)(-?\d+(?:\.\d+)?)', r'\1\033[33m\2\033[0m', text)
+        # bool, int'in alt sınıfı olduğundan int'ten önce kontrol edilmeli
+        if isinstance(node, bool):
+            val = "true" if node else "false"
+            return f"{BLUE}{val}{RESET}"
+        elif node is None:
+            return f"{BLUE}null{RESET}"
+        elif isinstance(node, str):
+            # json.dumps ile tırnak ve kaçış karakterleri doğru üretilir
+            return f"{GREEN}{json.dumps(node)}{RESET}"
+        elif isinstance(node, (int, float)):
+            return f"{CYAN}{json.dumps(node)}{RESET}"
+        elif isinstance(node, list):
+            if not node:
+                return "[]"
+            items = [f"{child_pad}{_walk(item, level + 1)}" for item in node]
+            return "[\n" + ",\n".join(items) + f"\n{pad}]"
+        elif isinstance(node, dict):
+            if not node:
+                return "{}"
+            keys = sorted(node.keys()) if sort_keys else list(node.keys())
+            items = []
+            for k in keys:
+                colored_key = f'{YELLOW}"{k}"{RESET}'
+                colored_val = _walk(node[k], level + 1)
+                items.append(f"{child_pad}{colored_key}: {colored_val}")
+            return "{\n" + ",\n".join(items) + f"\n{pad}}}"
+        else:
+            # Bilinmeyen türler için str() fallback
+            return str(node)
 
-    # (4) true / false / null → mavi
-    text = re.sub(r'\b(true|false|null)\b', r'\033[34m\1\033[0m', text)
-
-    return text
+    return _walk(obj)

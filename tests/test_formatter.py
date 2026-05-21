@@ -403,28 +403,28 @@ class TestJSONFormatter(unittest.TestCase):
         self.assertNotIn(' ', result)
         self.assertEqual(result, '{"a":1}')
 
-    # --- colorize_json testleri ---
+    # --- colorize_json testleri (nesne tabanlı yeni API) ---
 
     def test_colorize_string_value_wrapped_with_green_ansi(self):
         """(a) String değer yeşil ANSI koduyla (\033[32m) sarılmalı"""
         from json_formatter.formatter import colorize_json
-        text = '{\n  "name": "John"\n}'
-        result = colorize_json(text)
+        obj = {"name": "John"}
+        result = colorize_json(obj)
         self.assertIn('\033[32m"John"\033[0m', result)
 
-    def test_colorize_number_value_wrapped_with_yellow_ansi(self):
-        """(b) Sayı değer sarı ANSI koduyla (\033[33m) sarılmalı"""
+    def test_colorize_number_value_wrapped_with_cyan_ansi(self):
+        """(b) Sayı değer cyan ANSI koduyla (\033[36m) sarılmalı"""
         from json_formatter.formatter import colorize_json
-        text = '{\n  "age": 30\n}'
-        result = colorize_json(text)
-        self.assertIn('\033[33m30\033[0m', result)
+        obj = {"age": 30}
+        result = colorize_json(obj)
+        self.assertIn('\033[36m30\033[0m', result)
 
-    def test_colorize_key_wrapped_with_cyan_ansi(self):
-        """(c) Dict anahtarı cyan ANSI koduyla (\033[36m) sarılmalı"""
+    def test_colorize_key_wrapped_with_yellow_ansi(self):
+        """(c) Dict anahtarı sarı ANSI koduyla (\033[33m) sarılmalı"""
         from json_formatter.formatter import colorize_json
-        text = '{\n  "name": "John"\n}'
-        result = colorize_json(text)
-        self.assertIn('\033[36m"name"\033[0m', result)
+        obj = {"name": "John"}
+        result = colorize_json(obj)
+        self.assertIn('\033[33m"name"\033[0m', result)
 
 
 # --- Bağımsız pytest testleri ---
@@ -472,9 +472,11 @@ def test_compact_color_integration_no_newline():
     """compact=True çıktısına colorize_json uygulandığında sonuç '\\n' içermemeli."""
     from json_formatter import format_json
     from json_formatter.formatter import colorize_json
+    import json
     compact_result = format_json('{"a":1}', compact=True)
     assert '\n' not in compact_result
-    colored = colorize_json(compact_result)
+    # Compact string'i parse ederek colorize_json'a nesne olarak geçir
+    colored = colorize_json(json.loads(compact_result))
     assert '\n' not in colored
 
 
@@ -555,6 +557,37 @@ def test_unicode_true_preserves_non_ascii():
     data = '{"key": "değer"}'
     result = format_json(data, unicode=True)
     assert 'değer' in result
+
+
+# --- colorize_json yeni testleri (nesne tabanlı API) ---
+
+def test_colorize_json_key_contains_yellow():
+    """(1) Dict anahtarı sarı renk kodunu (\033[33m) içermeli."""
+    from json_formatter.formatter import colorize_json
+    result = colorize_json({"yas": 25})
+    assert "\033[33m" in result
+
+
+def test_colorize_json_number_contains_cyan():
+    """(2) Sayı değer cyan renk kodunu (\033[36m) içermeli."""
+    from json_formatter.formatter import colorize_json
+    result = colorize_json({"sayi": 42})
+    assert "\033[36m" in result
+
+
+def test_colorize_json_every_color_block_has_reset():
+    """(3) Her renk bloğunun ardından \033[0m reset kodu gelmeli."""
+    import re
+    from json_formatter.formatter import colorize_json
+    obj = {"isim": "Ali", "yas": 30, "aktif": True, "veri": None}
+    result = colorize_json(obj)
+    # Tüm ANSI kodlarını bul
+    all_codes = re.findall(r'\033\[\d+m', result)
+    open_codes = [c for c in all_codes if c != '\033[0m']
+    resets     = [c for c in all_codes if c == '\033[0m']
+    assert len(open_codes) == len(resets), (
+        f"Açık renk kodu sayısı ({len(open_codes)}) reset sayısıyla ({len(resets)}) eşleşmiyor"
+    )
 
 
 if __name__ == '__main__':
