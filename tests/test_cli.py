@@ -364,5 +364,77 @@ class TestCLICompactFlag:
         assert is_keys_sorted_recursive(parsed), f"Parsed object has unsorted keys: {parsed}"
 
 
+class TestCLITabFlag:
+    """--tab flag'i ile tab karakteri girinti içerikli JSON çıktısını test et."""
+
+    def test_cli_tab_stdin(self):
+        """stdin üzerinden --tab flag'ini test et.
+        
+        Kontroller:
+        (a) Çıktı geçerli JSON
+        (b) Çıktı tab karakteri (\\t) içeriyor
+        (c) İndentation sadece tab karakteri ile yapılmış (boşluk yok)
+        """
+        input_json = '{"name":"John","age":30}'
+        result = subprocess.run(
+            ['python', '-m', 'json_formatter', '--tab'],
+            input=input_json,
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode == 0
+        output = result.stdout.strip()
+        
+        # (a) Geçerli JSON olduğunu kontrol et (json.loads() ile parse et)
+        parsed = json.loads(output)
+        assert parsed is not None
+        
+        # (b) Çıktı tab karakteri (\t) içeriyor mu kontrol et
+        assert '\t' in output, f"Output does not contain tab character: {repr(output)}"
+        
+        # (c) İndentation sadece tab ile yapılmış (boşluk ile değil) kontrol et
+        lines = output.split('\n')
+        for line in lines:
+            if line and line[0] == ' ':
+                assert False, f"Line indented with space instead of tab: {repr(line)}"
+
+    def test_cli_tab_file(self):
+        """Dosya argumentı üzerinden --tab flag'ini test et.
+        
+        Kontroller:
+        (a) Çıktı geçerli JSON
+        (b) Çıktı tab karakteri (\\t) içeriyor
+        (c) İndentation sadece tab karakteri ile yapılmış (boşluk yok)
+        """
+        input_json = '{"name":"John","age":30}'
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            f.write(input_json)
+            temp_path = f.name
+        
+        try:
+            result = subprocess.run(
+                ['python', '-m', 'json_formatter', '--tab', temp_path],
+                capture_output=True,
+                text=True
+            )
+            assert result.returncode == 0
+            output = result.stdout.strip()
+            
+            # (a) Geçerli JSON olduğunu kontrol et (json.loads() ile parse et)
+            parsed = json.loads(output)
+            assert parsed is not None
+            
+            # (b) Çıktı tab karakteri (\t) içeriyor mu kontrol et
+            assert '\t' in output, f"Output does not contain tab character: {repr(output)}"
+            
+            # (c) İndentation sadece tab ile yapılmış (boşluk ile değil) kontrol et
+            lines = output.split('\n')
+            for line in lines:
+                if line and line[0] == ' ':
+                    assert False, f"Line indented with space instead of tab: {repr(line)}"
+        finally:
+            os.unlink(temp_path)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
