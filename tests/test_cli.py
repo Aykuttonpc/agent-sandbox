@@ -160,5 +160,137 @@ class TestCLIInvalidJSON:
         assert "Invalid JSON" in result.stderr
 
 
+class TestCLIInPlace:
+    """--in-place flag'ini atomik yazma ile test et."""
+
+    def test_cli_in_place_successful_write(self):
+        """--in-place ile başarılı yazma: dosya formatlanmış olmalı."""
+        unformatted_json = '{"z":1,"a":2}'
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            f.write(unformatted_json)
+            temp_path = f.name
+        
+        try:
+            result = subprocess.run(
+                ['python', '-m', 'json_formatter', '--in-place', temp_path],
+                capture_output=True,
+                text=True
+            )
+            assert result.returncode == 0
+            
+            # Dosya formatlanmış olmalı
+            with open(temp_path, 'r') as f:
+                content = f.read()
+            parsed = json.loads(content)
+            assert parsed == {"z": 1, "a": 2}
+            
+            # İndent 2 olmalı (varsayılan)
+            assert '  ' in content
+        finally:
+            os.unlink(temp_path)
+
+    def test_cli_in_place_format_error_preserves_original(self):
+        """Format hatası durumunda orijinal dosya korunmalı."""
+        invalid_json = '{"z":1,"a":2'  # Kapanmamış
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            f.write(invalid_json)
+            temp_path = f.name
+        
+        try:
+            result = subprocess.run(
+                ['python', '-m', 'json_formatter', '--in-place', temp_path],
+                capture_output=True,
+                text=True
+            )
+            assert result.returncode == 1
+            assert "Invalid JSON" in result.stderr
+            
+            # Dosya değişmemiş olmalı
+            with open(temp_path, 'r') as f:
+                content = f.read()
+            assert content == invalid_json
+        finally:
+            os.unlink(temp_path)
+
+    def test_cli_in_place_without_file_argument_error(self):
+        """--in-place dosya argümanı olmadan kullanılamaz."""
+        result = subprocess.run(
+            ['python', '-m', 'json_formatter', '--in-place'],
+            input='{"a":1}',
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode != 0
+        assert "--in-place requires a file argument" in result.stderr
+
+    def test_cli_in_place_with_sort_keys(self):
+        """--in-place ile --sort-keys birlikte çalışmalı."""
+        unformatted_json = '{"z":1,"a":2}'
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            f.write(unformatted_json)
+            temp_path = f.name
+        
+        try:
+            result = subprocess.run(
+                ['python', '-m', 'json_formatter', '--in-place', '--sort-keys', temp_path],
+                capture_output=True,
+                text=True
+            )
+            assert result.returncode == 0
+            
+            # Dosya formatlanmış ve anahtarlar sıralanmış olmalı
+            with open(temp_path, 'r') as f:
+                content = f.read()
+            parsed = json.loads(content)
+            assert list(parsed.keys()) == ['a', 'z']
+        finally:
+            os.unlink(temp_path)
+
+    def test_cli_in_place_nonexistent_file_error(self):
+        """Var olmayan dosya ile --in-place hata döndürmeli."""
+        result = subprocess.run(
+            ['python', '-m', 'json_formatter', '--in-place', '/nonexistent/path/file.json'],
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode == 1
+        assert "Error" in result.stderr
+
+    def test_cli_in_place_multiple_files(self):
+        """--in-place birden fazla dosyayı işleyebilmeli."""
+        unformatted_json1 = '{"b":2,"a":1}'
+        unformatted_json2 = '{"y":3,"x":4}'
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f1:
+            f1.write(unformatted_json1)
+            temp_path1 = f1.name
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f2:
+            f2.write(unformatted_json2)
+            temp_path2 = f2.name
+        
+        try:
+            result = subprocess.run(
+                ['python', '-m', 'json_formatter', '--in-place', temp_path1, temp_path2],
+                capture_output=True,
+                text=True
+            )
+            assert result.returncode == 0
+            
+            # Her iki dosya da formatlanmış olmalı
+            with open(temp_path1, 'r') as f:
+                content1 = f.read()
+            with open(temp_path2, 'r') as f:
+                content2 = f.read()
+            
+            parsed1 = json.loads(content1)
+            parsed2 = json.loads(content2)
+            assert parsed1 == {"b": 2, "a": 1}
+            assert parsed2 == {"y": 3, "x": 4}
+        finally:
+            os.unlink(temp_path1)
+            os.unlink(temp_path2)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
