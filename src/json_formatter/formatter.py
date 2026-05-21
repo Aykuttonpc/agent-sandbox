@@ -4,20 +4,24 @@ from typing import Any
 
 
 class JSONFormatter:
-    def __init__(self, indent: int = 2, sort_keys: bool = False, compact: bool = False, ensure_ascii: bool = True):
+    def __init__(self, indent: int = 2, sort_keys: bool = False, compact: bool = False, ensure_ascii: bool = True, separators=None):
         self.indent = indent
         self.sort_keys = sort_keys
         self.compact = compact
         self.ensure_ascii = ensure_ascii
+        self.separators = separators
 
     def format(self, data: str) -> str:
         try:
             obj = json.loads(data)
         except json.JSONDecodeError as e:
             raise ValueError(str(e))
+        
+        separators = self.separators if self.separators else ((',', ':') if self.compact else (', ', ': '))
+        
         if self.compact:
-            return json.dumps(obj, separators=(',', ':'), indent=None, sort_keys=self.sort_keys, ensure_ascii=self.ensure_ascii)
-        return json.dumps(obj, indent=self.indent, sort_keys=self.sort_keys, ensure_ascii=self.ensure_ascii)
+            return json.dumps(obj, separators=separators, indent=None, sort_keys=self.sort_keys, ensure_ascii=self.ensure_ascii)
+        return json.dumps(obj, separators=separators, indent=self.indent, sort_keys=self.sort_keys, ensure_ascii=self.ensure_ascii)
 
 
 def format_json(data: str, indent: int = 2, sort_keys: bool = False, compact: bool = False, ensure_ascii: bool = True, unicode: bool = False, tab: bool = False) -> str:
@@ -25,9 +29,16 @@ def format_json(data: str, indent: int = 2, sort_keys: bool = False, compact: bo
 
     tab=True ve compact=False ise indent olarak '\t' kullanılır.
     tab=True ve compact=True ise compact önceliklidir; tab sessizce yoksayılır.
+    compact=True ise indent parametresi yok sayılır.
     """
+    if compact:
+        indent = None
+    
     actual_indent = "\t" if (tab and not compact) else indent
-    formatter = JSONFormatter(indent=actual_indent, sort_keys=sort_keys, compact=compact, ensure_ascii=ensure_ascii and not unicode)
+    
+    separators = (',', ':') if compact else (', ', ': ')
+    
+    formatter = JSONFormatter(indent=actual_indent, sort_keys=sort_keys, compact=compact, ensure_ascii=ensure_ascii and not unicode, separators=separators)
     return formatter.format(data)
 
 
