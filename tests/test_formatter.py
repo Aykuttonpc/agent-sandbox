@@ -538,5 +538,24 @@ def test_check_subprocess_unformatted_file_exits_1_stderr_not_formatted():
         os.unlink(tmp_path)
 
 
+# --- unicode parametresi testleri ---
+
+def test_unicode_false_default_escapes_non_ascii():
+    """unicode=False (varsayılan) ile '{"key": "değer"}' girdisindeki non-ASCII karakterler \\u kaçışına dönüşmeli."""
+    from json_formatter import format_json
+    data = '{"key": "değer"}'
+    result = format_json(data, unicode=False)
+    assert '\\u' in result
+    assert 'değer' not in result
+
+
+def test_unicode_true_preserves_non_ascii():
+    """unicode=True ile '{"key": "değer"}' girdisindeki 'değer' string'i olduğu gibi korunmalı."""
+    from json_formatter import format_json
+    data = '{"key": "değer"}'
+    result = format_json(data, unicode=True)
+    assert 'değer' in result
+
+
 if __name__ == '__main__':
     unittest.main()

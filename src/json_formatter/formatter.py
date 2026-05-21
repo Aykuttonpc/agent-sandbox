@@ -19,9 +19,9 @@ class JSONFormatter:
         return json.dumps(obj, indent=self.indent, sort_keys=self.sort_keys, ensure_ascii=self.ensure_ascii)
 
 
-def format_json(data: str, indent: int = 2, sort_keys: bool = False, compact: bool = False, ensure_ascii: bool = True) -> str:
+def format_json(data: str, indent: int = 2, sort_keys: bool = False, compact: bool = False, ensure_ascii: bool = True, unicode: bool = False) -> str:
     """JSON verisini formatlar ve string olarak döndürür."""
-    formatter = JSONFormatter(indent=indent, sort_keys=sort_keys, compact=compact, ensure_ascii=ensure_ascii)
+    formatter = JSONFormatter(indent=indent, sort_keys=sort_keys, compact=compact, ensure_ascii=ensure_ascii and not unicode)
     return formatter.format(data)
 
 

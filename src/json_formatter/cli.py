@@ -19,7 +19,7 @@ def build_parser():
     parser.add_argument("--sort-keys", action="store_true", default=False, help="Nesne anahtarlarını alfabetik sırala")
     parser.add_argument("--in-place", "-i", action="store_true", help="Dosyayı yerinde atomik olarak formatla")
     parser.add_argument("--check", action="store_true", help="Dosyanın formatlanmış olup olmadığını kontrol et (yazmaz)")
-    parser.add_argument("--unicode", action="store_true", help="Non-ASCII karakterleri escape etmeden yaz")
+    parser.add_argument("--unicode", action="store_true", help="Non-ASCII karakterleri escape etme")
 
     color_group = parser.add_mutually_exclusive_group()
     color_group.add_argument("--color", action="store_true", default=False, help="Renkli çıktıyı zorla aç")
@@ -45,7 +45,7 @@ def main():
         use_color = sys.stdout.isatty()
 
     # --compact aktifken indent iletilmez; aksi hâlde kullanıcının seçtiği (ya da varsayılan) indent kullanılır
-    fmt_kwargs = dict(sort_keys=args.sort_keys, compact=args.compact, ensure_ascii=not args.unicode)
+    fmt_kwargs = dict(sort_keys=args.sort_keys, compact=args.compact, unicode=args.unicode)
     if not args.compact:
         fmt_kwargs["indent"] = args.indent
 
