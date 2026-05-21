@@ -1,8 +1,14 @@
+import re
 from setuptools import setup, find_packages
+
+version = re.search(
+    r'__version__ = ["\'](.+)["\']',
+    open("src/json_formatter/__init__.py").read()
+).group(1)
 
 setup(
     name="json-formatter",
-    version="1.0.0",
+    version=version,
     description="JSON formatter CLI tool",
     packages=find_packages(),
     python_requires=">=3.10",

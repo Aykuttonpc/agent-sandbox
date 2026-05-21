@@ -2,11 +2,13 @@ import sys
 import os
 import tempfile
 import argparse
+from . import __version__
 from .formatter import JSONFormatter, format_json
 
 def main():
     parser = argparse.ArgumentParser(description="Format JSON from file or stdin")
     parser.add_argument("file", nargs="*", help="JSON file(s) to format (optional, read from stdin if not provided)")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
     fmt_group = parser.add_mutually_exclusive_group()
     fmt_group.add_argument("--compact", action="store_true", help="Compact JSON çıktısı üret (boşluk yok)")
