@@ -17,8 +17,12 @@ def build_parser():
     fmt_group.add_argument("--indent", type=int, default=2, help="Girinti seviyesi (varsayılan: 2)")
 
     parser.add_argument("--sort-keys", action="store_true", default=False, help="Nesne anahtarlarını alfabetik sırala")
-    parser.add_argument("--in-place", "-i", action="store_true", help="Dosyayı yerinde atomik olarak formatla")
-    parser.add_argument("--check", action="store_true", help="Dosyanın formatlanmış olup olmadığını kontrol et (yazmaz)")
+
+    # --in-place ve --check birbirini dışlayan mod grubu (--compact bu gruba dahil değil)
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument("--in-place", "-i", action="store_true", help="Dosyayı yerinde atomik olarak formatla")
+    mode_group.add_argument("--check", action="store_true", help="Dosyanın formatlanmış olup olmadığını kontrol et (yazmaz)")
+
     parser.add_argument("--unicode", action="store_true", help="Non-ASCII karakterleri escape etme")
 
     color_group = parser.add_mutually_exclusive_group()
@@ -54,14 +58,9 @@ def main():
         print("Error: --check requires a file argument, not stdin", file=sys.stderr)
         sys.exit(2)
 
-    # --check ve --in-place birlikte verilirse uyarı ver, yine de yalnızca check yap
-    if args.check and args.in_place:
-        print("Warning: --in-place ignored when --check is active", file=sys.stderr)
-
-    # --in-place yalnızca dosya moduyla kullanılabilir
+    # --in-place yalnızca dosya moduyla kullanılabilir; hata argparse üzerinden verilir
     if args.in_place and not files:
-        print("Error: --in-place requires a file argument", file=sys.stderr)
-        sys.exit(1)
+        parser.error("--in-place requires a file argument")
 
     # Stdout modu: 2+ dosya verilirse hata
     if not args.in_place and not args.check and len(files) >= 2:
@@ -88,9 +87,9 @@ def main():
             try:
                 with open(filepath, 'r') as f:
                     data = f.read()
-            except FileNotFoundError:
+            except OSError as e:
                 print(f"FAIL: {filepath}")
-                print(f"Error: File '{filepath}' not found", file=sys.stderr)
+                print(f"Error: Cannot read '{filepath}' - {e}", file=sys.stderr)
                 any_fail = True
                 continue
             if is_already_formatted(data, **fmt_kwargs):
@@ -103,15 +102,15 @@ def main():
             sys.exit(1)
         sys.exit(0)
 
-    # --in-place çoklu dosya modu
+    # --in-place çoklu dosya modu: NamedTemporaryFile ile atomik yazma, OSError sarması
     if args.in_place:
         any_fail = False
         for filepath in files:
             try:
                 with open(filepath, 'r') as f:
                     data = f.read()
-            except FileNotFoundError:
-                print(f"Error: File '{filepath}' not found", file=sys.stderr)
+            except OSError as e:
+                print(f"Error: Cannot read '{filepath}' - {e}", file=sys.stderr)
                 any_fail = True
                 continue
             try:
@@ -121,16 +120,18 @@ def main():
                 any_fail = True
                 continue
             dir_name = os.path.dirname(os.path.abspath(filepath))
-            tmp_fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix='.tmp')
+            tmp_path = None
             try:
-                with os.fdopen(tmp_fd, 'w') as tmp:
+                with tempfile.NamedTemporaryFile('w', dir=dir_name, suffix='.tmp', delete=False) as tmp:
+                    tmp_path = tmp.name
                     tmp.write(result)
                 os.replace(tmp_path, filepath)
-            except Exception as e:
-                try:
-                    os.unlink(tmp_path)
-                except OSError:
-                    pass
+            except OSError as e:
+                if tmp_path is not None:
+                    try:
+                        os.unlink(tmp_path)
+                    except OSError:
+                        pass
                 print(f"Error: Failed to write '{filepath}' - {e}", file=sys.stderr)
                 any_fail = True
         if any_fail:
@@ -142,8 +143,8 @@ def main():
     try:
         with open(filepath, 'r') as f:
             data = f.read()
-    except FileNotFoundError:
-        print(f"Error: File '{filepath}' not found", file=sys.stderr)
+    except OSError as e:
+        print(f"Error: Cannot read '{filepath}' - {e}", file=sys.stderr)
         sys.exit(1)
     try:
         result = format_json(data, **fmt_kwargs)

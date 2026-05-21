@@ -99,13 +99,13 @@ class TestJSONFormatter(unittest.TestCase):
         finally:
             os.unlink(tmp_path)
 
-    def test_in_place_with_stdin_exits_code_1(self):
-        """stdin modunda --in-place kullanılınca exit code 1 alınmalı"""
+    def test_in_place_with_stdin_exits_nonzero(self):
+        """stdin modunda --in-place kullanılınca exit code != 0 alınmalı (parser.error → code 2)"""
         from json_formatter.cli import main
         with patch('sys.argv', ['json-formatter', '--in-place']):
             with self.assertRaises(SystemExit) as cm:
                 main()
-        self.assertEqual(cm.exception.code, 1)
+        self.assertNotEqual(cm.exception.code, 0)
 
     def test_in_place_invalid_json_preserves_original(self):
         """Geçersiz JSON + --in-place kombinasyonunda orijinal dosya içeriği bozulmamalı"""
@@ -174,23 +174,17 @@ class TestJSONFormatter(unittest.TestCase):
         finally:
             os.unlink(tmp_path)
 
-    def test_check_with_in_place_file_unchanged_and_warning(self):
-        """--check --in-place birlikte verilince dosya değişmemeli ve stderr'de uyarı olmalı"""
+    def test_check_with_in_place_exits_2_argparse_error(self):
+        """--check --in-place birlikte verilince argparse mutually exclusive hatası (exit 2) vermeli"""
         from json_formatter.cli import main
-        original = '{"b":2,"a":1}'
         with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
-            f.write(original)
+            f.write('{"b":2,"a":1}')
             tmp_path = f.name
         try:
             with patch('sys.argv', ['json-formatter', '--check', '--in-place', tmp_path]):
-                with patch('sys.stderr', new_callable=StringIO) as mock_err:
-                    with self.assertRaises(SystemExit):
-                        main()
-                    stderr_output = mock_err.getvalue()
-            self.assertIn('Warning: --in-place ignored when --check is active', stderr_output)
-            with open(tmp_path, 'r') as f:
-                content = f.read()
-            self.assertEqual(content, original)
+                with self.assertRaises(SystemExit) as cm:
+                    main()
+            self.assertEqual(cm.exception.code, 2)
         finally:
             os.unlink(tmp_path)
 
@@ -588,6 +582,52 @@ def test_colorize_json_every_color_block_has_reset():
     assert len(open_codes) == len(resets), (
         f"Açık renk kodu sayısı ({len(open_codes)}) reset sayısıyla ({len(resets)}) eşleşmiyor"
     )
+
+
+# ============================================================
+# YENİ TESTLER: --in-place iyileştirmeleri (tmp_path fixture)
+# ============================================================
+
+def test_in_place_formats_file_correctly_tmp_path(tmp_path):
+    """
+    (1) tmp_path fixture ile geçici dosyanın içeriği --in-place sonrası
+    doğru biçimlendirilmeli: girintili, anahtarlar ve değerler korunmalı.
+    """
+    from json_formatter.cli import main
+    json_file = tmp_path / "sample.json"
+    json_file.write_text('{"b":2,"a":1}')
+    with patch('sys.argv', ['json-formatter', '--in-place', str(json_file)]):
+        main()
+    content = json_file.read_text()
+    assert '"b": 2' in content
+    assert '"a": 1' in content
+    assert '\n' in content
+
+
+def test_in_place_without_file_exits_nonzero_pytest(tmp_path):
+    """
+    (2) --in-place stdin ile (dosyasız) kullanıldığında exit code != 0 olmalı.
+    parser.error() kullanıldığından argparse exit code 2 verir.
+    """
+    from json_formatter.cli import main
+    with patch('sys.argv', ['json-formatter', '--in-place']):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+    assert exc_info.value.code != 0
+
+
+def test_in_place_and_check_mutually_exclusive_exits_2(tmp_path):
+    """
+    (3) --in-place --check birlikte kullanıldığında argparse mutually exclusive
+    grubu devreye girerek exit code 2 ile hata vermeli.
+    """
+    from json_formatter.cli import main
+    json_file = tmp_path / "data.json"
+    json_file.write_text('{"a":1}')
+    with patch('sys.argv', ['json-formatter', '--in-place', '--check', str(json_file)]):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+    assert exc_info.value.code == 2
 
 
 if __name__ == '__main__':
