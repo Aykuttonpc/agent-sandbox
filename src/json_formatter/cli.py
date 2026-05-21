@@ -4,7 +4,8 @@ import json
 import tempfile
 import argparse
 import glob as _glob
-from .formatter import JSONFormatter, format_json, colorize_json, is_already_formatted, is_formatted
+from .formatter import JSONFormatter, format_json, is_already_formatted, is_formatted
+from .color import colorize_json
 
 
 def build_parser():
@@ -53,7 +54,11 @@ def main():
         print("Bu iki flag birlikte kullanılamaz", file=sys.stderr)
         sys.exit(2)
 
-    # Renk kararı
+    # Renk kararı:
+    #   --in-place / --check  → renk yok (dosyaya yazılıyor)
+    #   --color               → TTY kontrolü olmaksızın her zaman renkli
+    #   --no-color            → her zaman renksiz
+    #   (ikisi de yok)        → sys.stdout.isatty() kontrolü
     if args.in_place or args.check:
         use_color = False
     elif args.color:

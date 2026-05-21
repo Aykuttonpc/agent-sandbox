@@ -466,5 +466,55 @@ class TestCLITabFlag:
             os.unlink(temp_path)
 
 
+class TestCLIColor:
+    """--color / --no-color flag'lerini ve colorize_json davranışını test et."""
+
+    def test_no_color_strips_ansi(self):
+        """--no-color verildiğinde çıktıda hiç ANSI escape kodu bulunmamalı."""
+        result = subprocess.run(
+            [sys.executable, '-m', 'json_formatter', '--no-color'],
+            input='{"key": true}',
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode == 0
+        assert '\x1b[' not in result.stdout, (
+            f"--no-color ile ANSI kodu beklenmiyor; stdout: {repr(result.stdout)}"
+        )
+
+    def test_color_force_produces_ansi(self):
+        """--color verildiğinde TTY kontrolü olmaksızın çıktıda ANSI escape kodu bulunmalı."""
+        result = subprocess.run(
+            [sys.executable, '-m', 'json_formatter', '--color'],
+            input='{"key": true}',
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode == 0
+        assert '\x1b[' in result.stdout, (
+            f"--color ile ANSI kodu bekleniyor; stdout: {repr(result.stdout)}"
+        )
+
+    def test_color_string_value_containing_true(self):
+        """String value içindeki 'true' kelimesi string rengi (yeşil \x1b[32m) almalı,
+        boolean rengi (mavi \x1b[34m) almamalı."""
+        result = subprocess.run(
+            [sys.executable, '-m', 'json_formatter', '--color'],
+            input='{"flag": "true"}',
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode == 0
+        stdout = result.stdout
+        # "true" string value olarak yeşil (\x1b[32m) renkte, tırnaklarıyla birlikte görünmeli
+        assert '\x1b[32m"true"\x1b[0m' in stdout, (
+            f'Yeşil renkte \"true\" bekleniyor; stdout: {repr(stdout)}'
+        )
+        # Çıplak boolean token'ı olarak mavi (\x1b[34m) görünmemeli
+        assert '\x1b[34mtrue\x1b[0m' not in stdout, (
+            f'Mavi renkte çıplak true beklenmiyor; stdout: {repr(stdout)}'
+        )
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
