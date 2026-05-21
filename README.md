@@ -34,6 +34,35 @@ Daha fazla örnek için [Kullanım Örnekleri](#kullanım-örnekleri) bölümün
 | --check | Dosyanın formatlanmış olup olmadığını kontrol | Formatla |
 | --color / --no-color | Renkli çıktı kontrolü | Renkli (destekleniyorsa) |
 
+## Exit Code Semantiği
+
+Program aşağıdaki exit code'ları döndürür:
+
+- **0**: Başarı - JSON başarıyla biçimlendirildi veya dosya zaten formatlanmıştır (--check ile)
+- **1**: JSON hatası veya format doğrulama başarısız - Geçersiz JSON veya (--check ile) dosya formatlanmamış durumda
+- **2**: Kullanım hatası - Hatalı komut satırı argümanları (örn. stdin ile --check kullanımı)
+
+## --check Flag Davranışı
+
+### Dosya + --check
+
+Dosyayı okur, parse eder ve belirtilen flag'lara göre biçimlendirir, ardından orijinal dosya ile karşılaştırır:
+
+- **Dosya zaten formatlanmış ise**: Exit code 0, stdout'a "Already formatted" mesajı yazdırılır
+- **Dosya formatlanmamış ise**: Exit code 1, stdout'a "File is not formatted" mesajı yazdırılır
+
+### JSON Hatası
+
+Girdi geçersiz JSON içeriyorsa: Exit code 1, stderr'e hata mesajı yazdırılır.
+
+### stdin + --check
+
+--check flag'ı stdin girdisi ile desteklenmez: Exit code 2, stderr'e şu mesaj yazdırılır:
+
+```
+--check flag'ı sadece dosya argument'i ile kullanılabilir
+```
+
 ## Kullanım Örnekleri
 
 ### Dosya Argument
