@@ -6,7 +6,8 @@ from . import __version__
 from .formatter import JSONFormatter, format_json, colorize_json
 
 
-def main():
+def build_parser():
+    """Argüman ayrıştırıcıyı oluşturup döndürür."""
     parser = argparse.ArgumentParser(description="Format JSON from file or stdin")
     parser.add_argument("file", nargs="*", help="JSON file(s) to format (optional, read from stdin if not provided)")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -24,6 +25,11 @@ def main():
     color_group.add_argument("--color", action="store_true", default=False, help="Renkli çıktıyı zorla aç")
     color_group.add_argument("--no-color", dest="no_color", action="store_true", default=False, help="Renkli çıktıyı zorla kapat")
 
+    return parser
+
+
+def main():
+    parser = build_parser()
     args = parser.parse_args()
     files = args.file  # nargs='*' → her zaman liste; boş liste stdin anlamına gelir
 

@@ -425,7 +425,7 @@ class TestJSONFormatter(unittest.TestCase):
         self.assertIn('\033[36m"name"\033[0m', result)
 
 
-# --- Bağımsız pytest testi ---
+# --- Bağımsız pytest testleri ---
 
 def test_invalid_json_error_message_contains_location():
     from json_formatter import format_json
@@ -433,6 +433,18 @@ def test_invalid_json_error_message_contains_location():
         format_json("{invalid")
     msg = str(exc_info.value)
     assert "line" in msg and "column" in msg
+
+
+def test_version_flag(capsys):
+    """--version bayrağı: exit kodu 0 olmalı ve __version__ stdout'ta görünmeli."""
+    from json_formatter.cli import main
+    from json_formatter import __version__
+    with patch('sys.argv', ['json-formatter', '--version']):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr()
+    assert __version__ in captured.out
 
 
 if __name__ == '__main__':
