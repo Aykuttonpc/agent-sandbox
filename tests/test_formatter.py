@@ -1146,5 +1146,47 @@ def test_compact_no_space():
         f"Kompakt çıktı beklenmiyor: {repr(result)}"
 
 
+# ============================================================
+# YENİ TEST: Primitive JSON Types - formatter.format() ile test
+# ============================================================
+
+def test_primitive_json_types():
+    """Primitive JSON types'ını formatter.format() ile format et, parse et, orijinal value ile karşılaştır.
+    
+    Test case'ler: null, true, false, 0, -1, 1.5, "", [], {}
+    
+    Her primitive type için:
+    1. JSON string'i formatter.format() ile format et
+    2. Dönen string'i json.loads() ile parse et
+    3. Parse edilen value'yu orijinal value ile karşılaştır
+    """
+    formatter = JSONFormatter()
+    
+    # (JSON string input, beklenen Python objesi)
+    test_cases = [
+        ('null', None),
+        ('true', True),
+        ('false', False),
+        ('0', 0),
+        ('-1', -1),
+        ('1.5', 1.5),
+        ('""', ''),
+        ('[]', []),
+        ('{}', {}),
+    ]
+    
+    for json_input, expected_value in test_cases:
+        # formatter.format() ile format et
+        formatted = formatter.format(json_input)
+        
+        # Dönen string'i parse et
+        parsed_value = json.loads(formatted)
+        
+        # Orijinal value ile eşit olduğunu doğrula
+        assert parsed_value == expected_value, \
+            f"Type {type(expected_value).__name__} için hata: " \
+            f"input={json_input}, expected={expected_value}, got={parsed_value}"
+
+
 if __name__ == '__main__':
     unittest.main()
