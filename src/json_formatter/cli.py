@@ -7,6 +7,7 @@ import glob as _glob
 from .formatter import JSONFormatter, format_json, is_already_formatted, is_formatted
 from .color import colorize_json
 from .diff import diff_format
+from json_formatter import __version__
 
 
 def _non_negative_int(value):
@@ -28,10 +29,9 @@ def _non_negative_int(value):
 
 def build_parser():
     """Argüman ayrıştırıcıyı oluşturup döndürür."""
-    from json_formatter import __version__
     parser = argparse.ArgumentParser(description="Format JSON from file or stdin")
     parser.add_argument("file", nargs="*", help="JSON file(s) to format (optional, read from stdin if not provided)")
-    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    parser.add_argument("--version", action="version", version=f"json-formatter {__version__}")
 
     # --compact, --indent ve --tab üçü birbirini dışlayan format grubu.
     fmt_group = parser.add_mutually_exclusive_group()

@@ -1,13 +1,15 @@
 import re
-import pathlib
+import os
 from setuptools import setup, find_packages
 
-version = re.search(
-    r'^__version__\s*=\s*[\'"]([\'"]^]+)[\'"]
-',
-    pathlib.Path("src/json_formatter/__init__.py").read_text(),
-    re.MULTILINE
-).group(1)
+def _get_version():
+    with open(os.path.join(os.path.dirname(__file__), "src/json_formatter/__init__.py")) as f:
+        match = re.search(r'__version__ = "([^"]+)"', f.read())
+        if not match:
+            raise RuntimeError("__version__ not found in __init__.py")
+        return match.group(1)
+
+version = _get_version()
 
 setup(
     name="json-formatter",
