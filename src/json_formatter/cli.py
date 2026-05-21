@@ -3,7 +3,8 @@ import os
 import tempfile
 import argparse
 from . import __version__
-from .formatter import JSONFormatter, format_json
+from .formatter import JSONFormatter, format_json, colorize_json
+
 
 def main():
     parser = argparse.ArgumentParser(description="Format JSON from file or stdin")
@@ -19,8 +20,23 @@ def main():
     parser.add_argument("--check", action="store_true", help="Dosyanın formatlanmış olup olmadığını kontrol et (yazmaz)")
     parser.add_argument("--unicode", action="store_true", help="Non-ASCII karakterleri escape etmeden yaz (--check ile birlikte kullanıldığında etkisizdir)")
 
+    color_group = parser.add_mutually_exclusive_group()
+    color_group.add_argument("--color", action="store_true", default=False, help="Renkli çıktıyı zorla aç")
+    color_group.add_argument("--no-color", dest="no_color", action="store_true", default=False, help="Renkli çıktıyı zorla kapat")
+
     args = parser.parse_args()
     files = args.file  # nargs='*' → her zaman liste; boş liste stdin anlamına gelir
+
+    # Renk kararı: --color zorla aç, --no-color zorla kapat, varsayılan isatty()
+    # --in-place veya --check aktifse renklendirme atlanır
+    if args.in_place or args.check:
+        use_color = False
+    elif args.color:
+        use_color = True
+    elif args.no_color:
+        use_color = False
+    else:
+        use_color = sys.stdout.isatty()
 
     # --compact aktifken indent iletilmez; aksi hâlde kullanıcının seçtiği (ya da varsayılan) indent kullanılır
     fmt_kwargs = dict(sort_keys=args.sort_keys, compact=args.compact, ensure_ascii=not args.unicode)
@@ -54,6 +70,8 @@ def main():
         except ValueError as e:
             print(f"Error: Invalid JSON - {e}", file=sys.stderr)
             sys.exit(1)
+        if use_color:
+            result = colorize_json(result)
         print(result)
         return
 
@@ -134,7 +152,10 @@ def main():
     except ValueError as e:
         print(f"Error: Invalid JSON - {e}", file=sys.stderr)
         sys.exit(1)
+    if use_color:
+        result = colorize_json(result)
     print(result)
+
 
 if __name__ == "__main__":
     main()

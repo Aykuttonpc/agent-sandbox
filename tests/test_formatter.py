@@ -400,6 +400,30 @@ class TestJSONFormatter(unittest.TestCase):
         self.assertNotIn(' ', result)
         self.assertEqual(result, '{"a":1}')
 
+    # --- colorize_json testleri ---
+
+    def test_colorize_string_value_wrapped_with_green_ansi(self):
+        """(a) String değer yeşil ANSI koduyla (\033[32m) sarılmalı"""
+        from json_formatter.formatter import colorize_json
+        # json.dumps çıktısına eşdeğer biçimlendirilmiş JSON
+        text = '{\n  "name": "John"\n}'
+        result = colorize_json(text)
+        self.assertIn('\033[32m"John"\033[0m', result)
+
+    def test_colorize_number_value_wrapped_with_yellow_ansi(self):
+        """(b) Sayı değer sarı ANSI koduyla (\033[33m) sarılmalı"""
+        from json_formatter.formatter import colorize_json
+        text = '{\n  "age": 30\n}'
+        result = colorize_json(text)
+        self.assertIn('\033[33m30\033[0m', result)
+
+    def test_colorize_key_wrapped_with_cyan_ansi(self):
+        """(c) Dict anahtarı cyan ANSI koduyla (\033[36m) sarılmalı"""
+        from json_formatter.formatter import colorize_json
+        text = '{\n  "name": "John"\n}'
+        result = colorize_json(text)
+        self.assertIn('\033[36m"name"\033[0m', result)
+
 
 # --- Bağımsız pytest testi ---
 
