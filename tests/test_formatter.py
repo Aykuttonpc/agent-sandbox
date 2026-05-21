@@ -482,7 +482,7 @@ def test_compact_false_preserves_default_behavior():
 
 
 def test_compact_color_integration_no_newline():
-    """compact=True çıktısına colorize_json uygulandığında sonuç '\\n' içermemeli."""
+    """compact=True çıktısına colorize_json uygulandığında sonuç '\\n' içermemeli"""
     from json_formatter import format_json
     from json_formatter.formatter import colorize_json
     import json
@@ -704,6 +704,31 @@ def test_in_place_glob_pattern_formats_all_files(tmp_path):
     assert '"z": 9' in beta
     assert '"m": 5' in beta
     assert '\n' in beta
+
+
+# ============================================================
+# YENİ TESTLER: --tab parametresi
+# ============================================================
+
+def test_format_json_tab_true_uses_tab_indent():
+    """(1) format_json('{"a":1}', tab=True) çıktısında tab karakteri (\\t) bulunmalı."""
+    from json_formatter import format_json
+    result = format_json('{"a":1}', tab=True)
+    assert '\t' in result
+
+
+def test_tab_and_indent_mutually_exclusive_subprocess_exits_2():
+    """(2) subprocess ile --tab --indent 4 birlikte verildiğinde exit code 2 dönmeli
+    ve stderr.lower() içinde 'not allowed' bulunmalı."""
+    import sys
+    import subprocess
+    result = subprocess.run(
+        [sys.executable, '-m', 'json_formatter', '--tab', '--indent', '4'],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2
+    assert 'not allowed' in result.stderr.lower()
 
 
 if __name__ == '__main__':

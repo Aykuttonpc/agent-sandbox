@@ -20,9 +20,14 @@ class JSONFormatter:
         return json.dumps(obj, indent=self.indent, sort_keys=self.sort_keys, ensure_ascii=self.ensure_ascii)
 
 
-def format_json(data: str, indent: int = 2, sort_keys: bool = False, compact: bool = False, ensure_ascii: bool = True, unicode: bool = False) -> str:
-    """JSON verisini formatlar ve string olarak döndürür."""
-    formatter = JSONFormatter(indent=indent, sort_keys=sort_keys, compact=compact, ensure_ascii=ensure_ascii and not unicode)
+def format_json(data: str, indent: int = 2, sort_keys: bool = False, compact: bool = False, ensure_ascii: bool = True, unicode: bool = False, tab: bool = False) -> str:
+    """JSON verisini formatlar ve string olarak döndürür.
+
+    tab=True ve compact=False ise indent olarak '\t' kullanılır.
+    tab=True ve compact=True ise compact önceliklidir; tab sessizce yoksayılır.
+    """
+    actual_indent = "\t" if (tab and not compact) else indent
+    formatter = JSONFormatter(indent=actual_indent, sort_keys=sort_keys, compact=compact, ensure_ascii=ensure_ascii and not unicode)
     return formatter.format(data)
 
 

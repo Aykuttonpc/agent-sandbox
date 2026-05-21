@@ -13,9 +13,14 @@ def build_parser():
     parser.add_argument("file", nargs="*", help="JSON file(s) to format (optional, read from stdin if not provided)")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
+    # --compact, --indent ve --tab üçü birbirini dışlayan format grubu.
+    # --indent ile --tab argparse düzeyinde mutex; --compact ile --tab için
+    # ek mutex gerekmez (formatter zaten compact'ı öncelikli yapar), ancak
+    # hepsi aynı grupta olduğundan tutarlılık sağlanmış olur.
     fmt_group = parser.add_mutually_exclusive_group()
     fmt_group.add_argument("--compact", action="store_true", help="Compact JSON çıktısı üret (boşluk yok)")
     fmt_group.add_argument("--indent", type=int, default=2, help="Girinti seviyesi (varsayılan: 2)")
+    fmt_group.add_argument("--tab", action="store_true", help="Tab karakteri (\\t) ile girintile")
 
     parser.add_argument("--sort-keys", action="store_true", default=False, help="Nesne anahtarlarını alfabetik sırala")
 
@@ -58,9 +63,10 @@ def main():
     else:
         use_color = sys.stdout.isatty()
 
-    # --compact aktifken indent iletilmez; akşi hâlde kullanıcının seçtiği (ya da varsayılan) indent kullanılır
-    fmt_kwargs = dict(sort_keys=args.sort_keys, compact=args.compact, unicode=args.unicode)
-    if not args.compact:
+    # --compact aktifken indent iletilmez; --tab aktifken de indent gerekmez (format_json içi yönetir).
+    # Aksi hâlde kullanıcının seçtiği (ya da varsayılan) indent kullanılır.
+    fmt_kwargs = dict(sort_keys=args.sort_keys, compact=args.compact, unicode=args.unicode, tab=args.tab)
+    if not args.compact and not args.tab:
         fmt_kwargs["indent"] = args.indent
 
     # --check stdin ile kullanılamaz
