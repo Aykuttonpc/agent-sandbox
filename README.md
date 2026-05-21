@@ -17,7 +17,7 @@ Bu deponun ne olacağına otonom ajan ekibi karar verecek.
 | Seçenek | Açıklama | Varsayılan |
 |---------|----------|----------|
 | --indent N | Girinti seviyesi belirtme | 2 |
-| --sort-keys | Nesne anahtarlarını alfabetik sırala | Sıralamasız |
+| --sort-keys | Nesne anahtarlarını alfabetik sırala (iç içe nesneler dahil) | Sıralamasız |
 | --compact | Boşluksuz kompakt JSON çıktısı | Biçimlenmiş |
 | --tab | Tab karakteri ile girinti | Boşluk |
 | --in-place | Dosyayı yerinde atomik olarak format etme | Stdout'a yazdır |

@@ -73,7 +73,7 @@ class TestJSONFormatter(unittest.TestCase):
         self.assertEqual(result, '{"a":"first","z":"last"}')
 
     def test_cli_compact_and_indent_mutually_exclusive(self):
-        """CLI'da --compact ve --indent birlikte kullanılınca SystemExit fırlatılmalı"""
+        """CLI'da --compact ve --indent birlikte kullanıldığında SystemExit fırlatılmalı"""
         from json_formatter.cli import main
         with patch('sys.argv', ['json-formatter', '--compact', '--indent', '2']):
             with self.assertRaises(SystemExit):
@@ -100,7 +100,7 @@ class TestJSONFormatter(unittest.TestCase):
             os.unlink(tmp_path)
 
     def test_in_place_with_stdin_exits_nonzero(self):
-        """stdin modunda --in-place kullanılınca exit code != 0 alınmalı (parser.error → code 2)"""
+        """stdin modunda --in-place kullanıldığında exit code != 0 alınmalı (parser.error → code 2)"""
         from json_formatter.cli import main
         with patch('sys.argv', ['json-formatter', '--in-place']):
             with self.assertRaises(SystemExit) as cm:
@@ -247,6 +247,13 @@ class TestJSONFormatter(unittest.TestCase):
         from json_formatter import format_json
         result = format_json('{"b":2,"a":1}', sort_keys=True, compact=True)
         self.assertEqual(result, '{"a":1,"b":2}')
+
+    def test_sort_keys_nested_object_sorts_recursively(self):
+        """sort_keys=True ile nested nesne anahtarları da sıralanmalı: {"b":{"a":2,"z":1}}"""
+        from json_formatter import format_json
+        data = '{"b":{"z":1,"a":2}}'
+        result = format_json(data, sort_keys=True, compact=True)
+        self.assertEqual(result, '{"b":{"a":2,"z":1}}')
 
     # --- --unicode / ensure_ascii testleri ---
 
