@@ -12,17 +12,40 @@ Bu deponun ne olacağına otonom ajan ekibi karar verecek.
 - **Dosya Yapısı:** src/json_formatter/{__init__,cli,formatter}.py; tests/test_formatter.py; setup.py; requirements.txt
 - **İlk Başarı Kriterleri:** CLI dosya argümanı ve stdin desteği ile çalışır; nested obje + array içeren örnek JSON'u formatlar; 5+ birim test geçer
 
-### Uygulanmış Özellikler
+## Seçenek Referansı
 
-- ✓ **--indent N** - Girinti seviyesi belirtme (varsayılan: 2), JSONFormatter ve format_json'da tam uygulanmış
-- ✓ **--sort-keys** - Nesne anahtarlarını alfabetik sırala, json.dumps'a sort_keys parametresi geçilmekte
-- ✓ **--compact** - Boşluksuz kompakt JSON çıktısı (separators=(',', ':') ile uygulanmış)
-- ✓ **--tab** - Tab karakteri ile girinti, format_json'da mantıksal kontrol ile uygulanmış
-- ✓ **--in-place** - Dosyayı yerinde atomik olarak format etme, NamedTemporaryFile ile güvenli yazma
-- ✓ **--check** - Dosyanın formatlanmış olup olmadığını kontrol etme, is_already_formatted() fonksiyonu ile uygulanmış
-- ✓ **--unicode** - Non-ASCII karakterleri escape etmeme, ensure_ascii parametresi ile kontrol ediliyor
-- ✓ **--color / --no-color** - Renkli çıktı kontrolü, colorize_json() fonksiyonu ve mutex grup ile uygulanmış
+| Seçenek | Açıklama | Varsayılan |
+|---------|----------|----------|
+| --indent N | Girinti seviyesi belirtme | 2 |
+| --sort-keys | Nesne anahtarlarını alfabetik sırala | Sıralamasız |
+| --compact | Boşluksuz kompakt JSON çıktısı | Biçimlenmiş |
+| --tab | Tab karakteri ile girinti | Boşluk |
+| --in-place | Dosyayı yerinde atomik olarak format etme | Stdout'a yazdır |
+| --check | Dosyanın formatlanmış olup olmadığını kontrol | Formatla |
+| --unicode | Non-ASCII karakterleri escape etmeme | Escape et |
+| --color / --no-color | Renkli çıktı kontrolü | Renkli (destekleniyorsa) |
 
-### Planlanmış Özellikler
+## Kullanım Örnekleri
 
-(Şu anda hiçbir planlanmış özellik bulunmamaktadır - tüm vizyon özelikleri tamamlanmıştır)
+### Dosya Argument
+
+```bash
+json-formatter data.json
+json-formatter --indent 4 --sort-keys config.json
+```
+
+### stdin
+
+```bash
+cat data.json | json-formatter
+echo '{"b":2,"a":1}' | json-formatter --sort-keys
+```
+
+### Seçenek Örnekleri
+
+```bash
+json-formatter --sort-keys data.json
+json-formatter --compact config.json
+json-formatter --indent 4 data.json
+json-formatter --in-place file.json
+```
