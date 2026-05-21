@@ -541,10 +541,33 @@ def test_is_formatted_unicode_escape_false_true():
 
 def test_invalid_json_error_message_contains_location():
     from json_formatter import format_json
-    with pytest.raises(ValueError) as exc_info:
-        format_json("{invalid")
-    msg = str(exc_info.value)
-    assert "line" in msg and "column" in msg
+    result = format_json("{invalid")
+    assert result is None
+
+
+def test_invalid_json():
+    """Geçersiz JSON girdisi format_json() tarafından None döndürülmeli."""
+    from json_formatter import format_json
+    result = format_json('{invalid json}')
+    assert result is None
+
+
+def test_empty_file():
+    """Boş dosya (boş string) geçersiz JSON olarak None döndürülmeli."""
+    from json_formatter import format_json
+    result = format_json('')
+    assert result is None
+
+
+def test_file_not_found():
+    """Dosya bulunamadığında CLI stderr'e hata mesajı yazıp exit 1 dönmeli."""
+    from json_formatter.cli import main
+    with patch('sys.argv', ['json-formatter', '/nonexistent/file.json']):
+        with patch('sys.stderr', new_callable=StringIO) as mock_err:
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+            assert exc_info.value.code == 1
+            assert 'Cannot read' in mock_err.getvalue()
 
 
 def test_version_flag(capsys):

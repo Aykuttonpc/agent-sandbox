@@ -86,10 +86,9 @@ def main():
     # Stdin modu (dosya verilmemişse)
     if not files:
         data = sys.stdin.read()
-        try:
-            result = format_json(data, **fmt_kwargs)
-        except ValueError as e:
-            print(f"Error: Invalid JSON - {e}", file=sys.stderr)
+        result = format_json(data, **fmt_kwargs)
+        if result is None:
+            print("Invalid JSON", file=sys.stderr)
             sys.exit(1)
         if use_color:
             result = colorize_json(result)
@@ -137,10 +136,9 @@ def main():
                 print(f"Error: Cannot read '{filepath}' - {e}", file=sys.stderr)
                 any_fail = True
                 continue
-            try:
-                result = format_json(data, **fmt_kwargs)
-            except ValueError as e:
-                print(f"Error: Invalid JSON in '{filepath}' - {e}", file=sys.stderr)
+            result = format_json(data, **fmt_kwargs)
+            if result is None:
+                print(f"Invalid JSON", file=sys.stderr)
                 any_fail = True
                 continue
             dir_name = os.path.dirname(os.path.abspath(filepath))
@@ -170,10 +168,9 @@ def main():
     except OSError as e:
         print(f"Error: Cannot read '{filepath}' - {e}", file=sys.stderr)
         sys.exit(1)
-    try:
-        result = format_json(data, **fmt_kwargs)
-    except ValueError as e:
-        print(f"Error: Invalid JSON - {e}", file=sys.stderr)
+    result = format_json(data, **fmt_kwargs)
+    if result is None:
+        print("Invalid JSON", file=sys.stderr)
         sys.exit(1)
     if use_color:
         result = colorize_json(result)

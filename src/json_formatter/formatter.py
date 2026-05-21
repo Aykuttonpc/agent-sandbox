@@ -2,7 +2,7 @@ import json
 import os
 import shutil
 import tempfile
-from typing import Any
+from typing import Any, Optional
 
 
 class JSONFormatter:
@@ -26,12 +26,14 @@ class JSONFormatter:
         return json.dumps(obj, separators=separators, indent=self.indent, sort_keys=self.sort_keys, ensure_ascii=self.ensure_ascii)
 
 
-def format_json(data: str, indent: int = 2, sort_keys: bool = False, compact: bool = False, ensure_ascii: bool = True, unicode: bool = False, tab: bool = False) -> str:
+def format_json(data: str, indent: int = 2, sort_keys: bool = False, compact: bool = False, ensure_ascii: bool = True, unicode: bool = False, tab: bool = False) -> Optional[str]:
     """JSON verisini formatlar ve string olarak döndürür.
 
     tab=True ve compact=False ise indent olarak '\t' kullanılır.
     tab=True ve compact=True ise compact önceliklidir; tab sessizce yoksayılır.
     compact=True ise indent parametresi yok sayılır.
+    
+    Geçersiz JSON durumunda None döner.
     """
     if compact:
         indent = None
@@ -41,19 +43,24 @@ def format_json(data: str, indent: int = 2, sort_keys: bool = False, compact: bo
     separators = (',', ':') if compact else (', ', ': ')
     
     formatter = JSONFormatter(indent=actual_indent, sort_keys=sort_keys, compact=compact, ensure_ascii=ensure_ascii and not unicode, separators=separators)
-    return formatter.format(data)
+    try:
+        return formatter.format(data)
+    except ValueError:
+        return None
 
 
 def is_already_formatted(content: str, **opts) -> bool:
     """Verilen içeriğin halihazırda formatlanmış olup olmadığını kontrol eder.
 
     Karşılaştırma her iki taraf rstrip('\\r\\n') ile normalize edilerek yapılır.
-    Geçersiz JSON durumunda (ValueError) False döner.
+    Geçersiz JSON durumunda (None döner) False döner.
     """
     try:
         formatted = format_json(content, **opts)
+        if formatted is None:
+            return False
         return formatted.rstrip("\r\n") == content.rstrip("\r\n")
-    except ValueError:
+    except (ValueError, TypeError):
         return False
 
 
@@ -92,8 +99,10 @@ def is_formatted(data_str: str, indent: int = 2, sort_keys: bool = False, unicod
             compact=compact,
             tab=tab_param
         )
+        if formatted is None:
+            return False
         return formatted.rstrip("\r\n") == data_str.rstrip("\r\n")
-    except ValueError:
+    except (ValueError, TypeError):
         return False
 
 
@@ -121,6 +130,8 @@ def format_json_to_file(filepath: str, **opts) -> None:
     
     # Formatla
     formatted = format_json(content, **opts)
+    if formatted is None:
+        raise ValueError("Geçersiz JSON içeriği")
     
     # Temp dosya oluştur (aynı dizinde)
     file_dir = os.path.dirname(filepath) or '.'
