@@ -760,5 +760,25 @@ class TestCLIInvalidJSONErrorMessage:
             os.unlink(temp_path)
 
 
+class TestFileNotFound:
+    """FileNotFoundError: var olmayan dosya yolu için stderr mesajı ve exit code testi."""
+
+    def test_nonexistent_file_stderr_no_such_file_and_exit_1(self, tmp_path):
+        """tmp_path üzerinden var olmayan bir yol oluştur, CLI'yı çalıştır;
+        returncode==1 ve 'No such file or directory' in result.stderr assert et."""
+        nonexistent = str(tmp_path / "nonexistent.json")
+        result = subprocess.run(
+            [sys.executable, '-m', 'json_formatter', nonexistent],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 1, (
+            f"Var olmayan dosya için exit code 1 bekleniyor; alınan: {result.returncode}"
+        )
+        assert "No such file or directory" in result.stderr, (
+            f"stderr 'No such file or directory' içermeli; alınan: {repr(result.stderr)}"
+        )
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

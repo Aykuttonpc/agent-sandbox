@@ -285,7 +285,7 @@ def main():
         with open(filepath, 'r') as f:
             data = f.read()
     except FileNotFoundError:
-        print(f"Error: File '{filepath}' not found", file=sys.stderr)
+        print(f"json-formatter: '{filepath}': No such file or directory", file=sys.stderr)
         sys.exit(1)
     except PermissionError:
         print(f"Error: Permission denied for '{filepath}'", file=sys.stderr)
