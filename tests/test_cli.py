@@ -134,6 +134,16 @@ class TestCLICheckMode:
         assert result.returncode == 1
         assert "FAIL:" in result.stdout
 
+    def test_check_flag_file_not_formatted(self):
+        """--check flag'ı biçimlendirilmemiş dosya için exit 1 ve "File is not formatted" çıktısı döndürmeli."""
+        result = subprocess.run(
+            ['python', '-m', 'json_formatter', '--check', 'tests/data/unformatted.json'],
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode == 1
+        assert "File is not formatted" in result.stderr
+
     def test_check_invalid_json_file_returns_exit_1(self):
         """Geçersiz JSON dosyası --check ile exit code 1 döndürmeli."""
         # invalid.json zaten tests/data/ altında var

@@ -128,7 +128,7 @@ def main():
                 print(f"OK: {filepath}")
             else:
                 print(f"FAIL: {filepath}")
-                sys.stderr.write(f"{filepath}: not formatted\n")
+                sys.stderr.write("File is not formatted\n")
                 any_fail = True
         if any_fail:
             sys.exit(1)
