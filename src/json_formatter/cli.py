@@ -6,6 +6,7 @@ import argparse
 import glob as _glob
 from .formatter import JSONFormatter, format_json, is_already_formatted, is_formatted
 from .color import colorize_json
+from .diff import diff_format
 
 
 def _non_negative_int(value):
@@ -40,10 +41,12 @@ def build_parser():
 
     parser.add_argument("--sort-keys", action="store_true", default=False, help="Nesne anahtarlarını alfabetik sırala")
 
-    # --in-place ve --check argparse mutually_exclusive_group dışında tutulur;
-    # çakışma main() içinde özel Türkçe mesajla ele alınır (exit 2).
+    # --in-place, --check ve --diff argparse mutually_exclusive_group dışında tutulur;
+    # çakışmalar main() içinde özel Türkçe mesajla ele alınır (exit 2).
     parser.add_argument("--in-place", "-i", action="store_true", help="Dosyayı yerinde atomik olarak formatla")
     parser.add_argument("--check", action="store_true", help="Dosyanın formatlanmış olup olmadığını kontrol et (yazmaz)")
+    parser.add_argument("--diff", action="store_true",
+                        help="Dosyanın mevcut içeriği ile formatlanmış hali arasındaki farkı göster (yazmaz)")
 
     parser.add_argument("--unicode", action="store_true", help="Non-ASCII karakterleri escape etme")
 
@@ -71,8 +74,19 @@ def main():
         print("Bu iki flag birlikte kullanılamaz", file=sys.stderr)
         sys.exit(2)
 
+    # --diff uyumsuzluk kontrolleri (exit 2 + stderr)
+    if args.diff and args.in_place:
+        print("--diff ve --in-place birlikte kullanılamaz", file=sys.stderr)
+        sys.exit(2)
+    if args.diff and args.check:
+        print("--diff ve --check birlikte kullanılamaz", file=sys.stderr)
+        sys.exit(2)
+    if args.diff and not files:
+        print("--diff flag'ı stdin ile kullanılamaz", file=sys.stderr)
+        sys.exit(2)
+
     # Renk kararı:
-    #   --in-place / --check  → renk yok (dosyaya yazılıyor)
+    #   --in-place / --check  → renk yok (dosyaya yazılıyor veya sade metin bekleniyor)
     #   --color               → TTY kontrolü olmaksızın her zaman renkli
     #   --no-color            → her zaman renksiz
     #   (ikisi de yok)        → sys.stdout.isatty() kontrolü
@@ -98,8 +112,8 @@ def main():
     if args.in_place and not files:
         parser.error("--in-place requires a file argument")
 
-    # Stdout modu: 2+ dosya verilirse hata
-    if not args.in_place and not args.check and len(files) >= 2:
+    # Stdout modu: 2+ dosya verilirse hata (--diff ve --in-place ve --check hariç)
+    if not args.in_place and not args.check and not args.diff and len(files) >= 2:
         print("Error: stdout mode supports only a single file; use --in-place or --check for multiple files", file=sys.stderr)
         sys.exit(1)
 
@@ -202,6 +216,51 @@ def main():
         if any_fail:
             sys.exit(1)
         return
+
+    # --diff modu: dosyanın mevcut içeriği ile formatlanmış hali arasındaki farkı göster
+    if args.diff:
+        any_fail = False
+        for filepath in files:
+            if not os.path.isfile(filepath):
+                print(f"Error: File '{filepath}' not found", file=sys.stderr)
+                any_fail = True
+                continue
+
+            try:
+                with open(filepath, 'r') as f:
+                    data = f.read()
+            except PermissionError:
+                print(f"Error: Permission denied for '{filepath}'", file=sys.stderr)
+                any_fail = True
+                continue
+            except OSError as e:
+                print(f"Error: Cannot read '{filepath}' - {e}", file=sys.stderr)
+                any_fail = True
+                continue
+
+            try:
+                result = format_json(data, **fmt_kwargs)
+            except json.JSONDecodeError as e:
+                print(e.msg, file=sys.stderr)
+                any_fail = True
+                continue
+
+            diff_output = diff_format(
+                data,
+                result,
+                filename=os.path.basename(filepath),
+                use_color=use_color,
+            )
+            if not diff_output:
+                # Dosya zaten formatlanmış; --check davranışıyla tutarlı
+                print("Already formatted")
+            else:
+                print(diff_output, end="")
+                any_fail = True
+
+        if any_fail:
+            sys.exit(1)
+        sys.exit(0)
 
     # Tek dosya stdout modu
     filepath = files[0]

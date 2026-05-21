@@ -32,15 +32,16 @@ Daha fazla örnek için [Kullanım Örnekleri](#kullanım-örnekleri) bölümün
 | --unicode | Non-ASCII karakterleri escape etmeme | Escape et |
 | --in-place | Dosyayı yerinde atomik olarak format etme | Stdout'a yazdır |
 | --check | Dosyanın formatlanmış olup olmadığını kontrol | Formatla |
-| --color / --no-color | Renkli çıktı kontrolü | Renkli (destekleniyorsa) |
+| --diff | Mevcut içerik ile formatlanmış hal arasındaki farkı göster (yazmaz); zaten formatlıysa "Already formatted" + exit 0, değilse unified diff + exit 1; stdin/--in-place/--check ile birlikte kullanılamaz (exit 2) | - |
+| --color / --no-color | Renkli çıktı kontrolü; --diff ile + satırları yeşil, - satırları kırmızı | Renkli (destekleniyorsa) |
 
 ## Exit Code Semantiği
 
 Program aşağıdaki exit code'ları döndürür:
 
-- **0**: Başarı - JSON başarıyla biçimlendirildi veya dosya zaten formatlanmıştır (--check ile)
-- **1**: JSON hatası veya format doğrulama başarısız - Geçersiz JSON veya (--check ile) dosya formatlanmamış durumda
-- **2**: Kullanım hatası - Hatalı komut satırı argümanları (örn. stdin ile --check kullanımı)
+- **0**: Başarı - JSON başarıyla biçimlendirildi veya dosya zaten formatlanmıştır (--check / --diff ile)
+- **1**: JSON hatası veya format doğrulama başarısız - Geçersiz JSON veya (--check / --diff ile) dosya formatlanmamış durumda
+- **2**: Kullanım hatası - Hatalı komut satırı argümanları (örn. stdin ile --check veya --diff kullanımı)
 
 ## --check Flag Davranışı
 
@@ -62,6 +63,26 @@ Girdi geçersiz JSON içeriyorsa: Exit code 1, stderr'e hata mesajı yazdırıl�
 ```
 --check flag'ı sadece dosya argument'i ile kullanılabilir
 ```
+
+## --diff Flag Davranışı
+
+### Dosya + --diff
+
+Dosyayı okur, formatlanmış haliyle karşılaştırır ve unified diff çıktısı üretir:
+
+- **Dosya zaten formatlanmış ise**: Exit code 0, stdout'a "Already formatted" mesajı yazdırılır (--check ile tutarlı)
+- **Dosya formatlanmamış ise**: Exit code 1, stdout'a unified diff yazdırılır
+
+### Renk Desteği
+
+- `--color` ile: `+` satırları yeşil (`\x1b[32m`), `-` satırları kırmızı (`\x1b[31m`) renklendirilir
+- `--no-color` ile: Düz metin diff çıktısı
+
+### Uyumsuz Kullanımlar (exit 2)
+
+- `--diff` + stdin (dosya argümanı verilmemişse)
+- `--diff` + `--in-place`
+- `--diff` + `--check`
 
 ## Kullanım Örnekleri
 
@@ -89,4 +110,6 @@ json-formatter --compact config.json
 json-formatter --indent 4 data.json
 json-formatter --in-place file.json
 json-formatter --unicode --sort-keys data.json
+json-formatter --diff data.json
+json-formatter --diff --color data.json
 ```

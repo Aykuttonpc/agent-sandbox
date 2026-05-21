@@ -552,5 +552,119 @@ class TestCLIErrors:
         )
 
 
+class TestCLIDiff:
+    """--diff flag'i için temel senaryo testleri."""
+
+    def test_diff_unformatted_file_exit_1_and_diff_lines(self):
+        """(1) Biçimlendirilmemiş dosya + --diff → exit 1 ve diff satırları stdout'da."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            f.write('{"a":1,"b":2}')
+            temp_path = f.name
+        try:
+            result = subprocess.run(
+                [sys.executable, '-m', 'json_formatter', '--diff', temp_path],
+                capture_output=True,
+                text=True
+            )
+            assert result.returncode == 1, (
+                f"Biçimlendirilmemiş dosya için exit code 1 bekleniyor; alınan: {result.returncode}"
+            )
+            # Unified diff çıktısında + ve/veya - satırları bulunmalı
+            assert ('+' in result.stdout or '-' in result.stdout), (
+                f"Diff satırları (+ veya -) bekleniyor; stdout: {repr(result.stdout)}"
+            )
+            # Unified diff başlığı bulunmalı
+            assert '@@' in result.stdout, (
+                f"Diff hunk başlığı ('@@') bekleniyor; stdout: {repr(result.stdout)}"
+            )
+        finally:
+            os.unlink(temp_path)
+
+    def test_diff_already_formatted_exit_0_already_formatted(self):
+        """(2) Zaten formatlanmış dosya + --diff → exit 0 ve stdout'a 'Already formatted'."""
+        result = subprocess.run(
+            [sys.executable, '-m', 'json_formatter', '--diff', 'tests/data/formatted.json'],
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode == 0, (
+            f"Formatlanmış dosya için exit code 0 bekleniyor; alınan: {result.returncode}"
+        )
+        assert "Already formatted" in result.stdout, (
+            f"'Already formatted' mesajı bekleniyor; stdout: {repr(result.stdout)}"
+        )
+
+    def test_diff_stdin_exit_2(self):
+        """(3) stdin + --diff → exit 2 ve stderr'da hata mesajı."""
+        result = subprocess.run(
+            [sys.executable, '-m', 'json_formatter', '--diff'],
+            input='{"a":1}',
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode == 2, (
+            f"stdin + --diff için exit code 2 bekleniyor; alınan: {result.returncode}"
+        )
+        assert result.stderr.strip() != "", (
+            f"stderr'de hata mesajı bekleniyor; stderr boş"
+        )
+
+    def test_diff_in_place_exit_2(self):
+        """(4a) --diff + --in-place → exit 2 ve stderr'da hata mesajı."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            f.write('{"a":1}')
+            temp_path = f.name
+        try:
+            result = subprocess.run(
+                [sys.executable, '-m', 'json_formatter', '--diff', '--in-place', temp_path],
+                capture_output=True,
+                text=True
+            )
+            assert result.returncode == 2, (
+                f"--diff + --in-place için exit code 2 bekleniyor; alınan: {result.returncode}"
+            )
+            assert result.stderr.strip() != "", (
+                f"stderr'de hata mesajı bekleniyor; stderr boş"
+            )
+        finally:
+            os.unlink(temp_path)
+
+    def test_diff_check_exit_2(self):
+        """(4b) --diff + --check → exit 2 ve stderr'da hata mesajı."""
+        result = subprocess.run(
+            [sys.executable, '-m', 'json_formatter', '--diff', '--check',
+             'tests/data/formatted.json'],
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode == 2, (
+            f"--diff + --check için exit code 2 bekleniyor; alınan: {result.returncode}"
+        )
+        assert result.stderr.strip() != "", (
+            f"stderr'de hata mesajı bekleniyor; stderr boş"
+        )
+
+    def test_diff_color_plus_lines_green_minus_lines_red(self):
+        """(5) --diff --color ile + satırları yeşil (\x1b[32m), - satırları kırmızı (\x1b[31m) olmalı."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            f.write('{"a":1,"b":2}')
+            temp_path = f.name
+        try:
+            result = subprocess.run(
+                [sys.executable, '-m', 'json_formatter', '--diff', '--color', temp_path],
+                capture_output=True,
+                text=True
+            )
+            assert result.returncode == 1
+            assert '\x1b[32m+' in result.stdout, (
+                f"Yeşil (+) satırı bekleniyor (\\x1b[32m+); stdout: {repr(result.stdout)}"
+            )
+            assert '\x1b[31m-' in result.stdout, (
+                f"Kırmızı (-) satırı bekleniyor (\\x1b[31m-); stdout: {repr(result.stdout)}"
+            )
+        finally:
+            os.unlink(temp_path)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
