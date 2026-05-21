@@ -985,7 +985,7 @@ def test_in_place_glob_pattern_formats_all_files(tmp_path):
 # ============================================================
 
 def test_format_json_tab_true_uses_tab_indent():
-    """(1) format_json('{"a":1}', tab=True) çıktısında tab karakteri (\\t) bulunmalı."""
+    """(1) format_json('{"a":1}', tab=True) çıktısında tab karakteri (\t) bulunmalı."""
     from json_formatter import format_json
     result = format_json('{"a":1}', tab=True)
     assert '\t' in result
@@ -1017,6 +1017,125 @@ def test_format_json_unicode_preserve():
     assert parsed["şehir"] == "Eskişehir"
     # Escape sequence olmadığını doğrula
     assert '\\u' not in result
+
+
+# ============================================================
+# YENİ TESTLER: Formatter output doğrulaması (5 test)
+# ============================================================
+
+def test_empty_structures():
+    """(1) Boş nesne {} ve boş liste [] doğru biçimlendirilir.
+    
+    Output string doğrulaması:
+    - format_json('{}') → '{}' (tek satır)
+    - format_json('[]') → '[]' (tek satır)
+    """
+    from json_formatter import format_json
+    
+    # Boş nesne testi
+    result_empty_obj = format_json('{}')
+    assert result_empty_obj == '{}', f"Boş nesne çıktısı hatalı: {repr(result_empty_obj)}"
+    
+    # Boş liste testi
+    result_empty_array = format_json('[]')
+    assert result_empty_array == '[]', f"Boş liste çıktısı hatalı: {repr(result_empty_array)}"
+
+
+def test_null_and_booleans():
+    """(2) Null ve boolean değerler doğru serialize edilir.
+    
+    Output string doğrulaması:
+    - null → null
+    - true → true
+    - false → false
+    """
+    from json_formatter import format_json
+    
+    # Null testi
+    result_null = format_json('{"value": null}')
+    assert 'null' in result_null, f"null serialize edilmedi: {repr(result_null)}"
+    
+    # true testi
+    result_true = format_json('{"active": true}')
+    assert 'true' in result_true, f"true serialize edilmedi: {repr(result_true)}"
+    
+    # false testi
+    result_false = format_json('{"inactive": false}')
+    assert 'false' in result_false, f"false serialize edilmedi: {repr(result_false)}"
+
+
+def test_tab_indentation():
+    """(3) --tab flag tab karakterleriyle indent eder.
+    
+    Output string doğrulaması:
+    - tab=True ile format_json çıktısında \t karakteri var
+    - tab=False (varsayılan) ile \t karakteri yok, boşluk var
+    """
+    from json_formatter import format_json
+    
+    # Tab ile indent
+    result_with_tab = format_json('{"name": "John"}', tab=True)
+    assert '\t' in result_with_tab, f"Tab karakteri yok: {repr(result_with_tab)}"
+    assert ' ' not in result_with_tab.split('\n')[1:], f"Boşluk tab'ı yerine kullanılmış: {repr(result_with_tab)}"
+    
+    # Varsayılan (boşluk ile indent)
+    result_without_tab = format_json('{"name": "John"}')
+    assert '\t' not in result_without_tab, f"Tab karakteri bulunmamalı: {repr(result_without_tab)}"
+    assert '  ' in result_without_tab, f"İndent boşluk olmalı: {repr(result_without_tab)}"
+
+
+def test_sort_keys_unicode():
+    """(4) --sort-keys ile Unicode anahtarlar alfabetik sıralanır.
+    
+    Output string doğrulaması:
+    - sort_keys=True ile Unicode anahtarlar (ü, ş, vb.) alfabetik sırada
+    - "a" anahtarı "ü" anahtarından önce gelir
+    - Tüm karakterler doğru şekilde yer alır
+    """
+    from json_formatter import format_json
+    
+    # Unicode karakterler içeren input
+    data = '{"ürün": "elma", "ad": "Ali", "şehir": "Ankara"}'
+    result = format_json(data, sort_keys=True)
+    
+    # Anahtarları bulma
+    ad_idx = result.index('"ad"')
+    sehir_idx = result.index('"şehir"')
+    urun_idx = result.index('"ürün"')
+    
+    # Alfabetik sıra kontrolü (a < ş < ü)
+    assert ad_idx < sehir_idx, f"'ad' 'şehir'den sonra: {repr(result)}"
+    assert sehir_idx < urun_idx, f"'şehir' 'ürün'den sonra: {repr(result)}"
+    
+    # Tüm karakterlerin korunduğunu kontrol
+    assert 'ad' in result
+    assert 'şehir' in result
+    assert 'ürün' in result
+
+
+def test_compact_no_space():
+    """(5) --compact mode çıktısında boşluk kalmaz.
+    
+    Output string doğrulaması:
+    - compact=True ile çıktı tek satır
+    - Çıktıda newline (\n) yok
+    - Çıktıda space karakteri ( ) yok
+    """
+    from json_formatter import format_json
+    
+    # Compact format testi
+    result = format_json('{"name": "John", "age": 30}', compact=True)
+    
+    # Newline kontrolü
+    assert '\n' not in result, f"Newline bulunmalı değil: {repr(result)}"
+    
+    # Space kontrolü (ayrıntılı kontrol: separatorlar içinde space olmaz)
+    # Örnek beklenen çıktı: {"name":"John","age":30}
+    assert ' ' not in result, f"Space bulunmalı değil: {repr(result)}"
+    
+    # Tam çıktı doğrulaması
+    assert result == '{"age":30,"name":"John"}' or result == '{"name":"John","age":30}', \
+        f"Kompakt çıktı beklenmiyor: {repr(result)}"
 
 
 if __name__ == '__main__':
