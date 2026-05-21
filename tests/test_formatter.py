@@ -427,6 +427,48 @@ class TestJSONFormatter(unittest.TestCase):
         result = colorize_json(obj)
         self.assertIn('\033[33m"name"\033[0m', result)
 
+    def test_in_place_preserves_permissions(self):
+        """format_json_to_file() kullanıldığında 0o644 dosya izinleri korunmalı"""
+        from json_formatter.formatter import format_json_to_file
+        with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
+            f.write('{"b":2,"a":1}')
+            tmp_path = f.name
+        try:
+            # İzinleri ayarla
+            os.chmod(tmp_path, 0o644)
+            original_stat = os.stat(tmp_path)
+            original_mode = original_stat.st_mode
+            
+            # Formatla
+            format_json_to_file(tmp_path)
+            
+            # İzinleri kontrol et
+            new_stat = os.stat(tmp_path)
+            new_mode = new_stat.st_mode
+            self.assertEqual(original_mode, new_mode)
+        finally:
+            os.unlink(tmp_path)
+
+    def test_in_place_formats_content(self):
+        """format_json_to_file() kullanıldığında JSON içeriği düzgün formatlanmalı"""
+        from json_formatter.formatter import format_json_to_file
+        with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
+            f.write('{"b":2,"a":1}')
+            tmp_path = f.name
+        try:
+            # Formatla
+            format_json_to_file(tmp_path)
+            
+            # İçeriği kontrol et
+            with open(tmp_path, 'r') as f:
+                content = f.read()
+            
+            self.assertIn('"b": 2', content)
+            self.assertIn('"a": 1', content)
+            self.assertIn('\n', content)
+        finally:
+            os.unlink(tmp_path)
+
 
 # --- Bağımsız pytest testleri ---
 

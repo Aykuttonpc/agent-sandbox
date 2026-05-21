@@ -1,5 +1,7 @@
 import json
-import re
+import os
+import shutil
+import tempfile
 from typing import Any
 
 
@@ -53,6 +55,51 @@ def is_already_formatted(content: str, **opts) -> bool:
         return formatted.rstrip("\r\n") == content.rstrip("\r\n")
     except ValueError:
         return False
+
+
+def format_json_to_file(filepath: str, **opts) -> None:
+    """Dosyadaki JSON'ı formatlar ve aynı dosyaya atomik biçimde yazar.
+    
+    - Dosyayı oku
+    - format_json() ile formatla
+    - Aynı dizinde temp dosya oluştur (delete=False)
+    - shutil.copystat() ile izinleri kopyala
+    - os.replace() ile atomik swap yap
+    - try/finally ile error sırasında temp dosyasını sil
+    
+    Args:
+        filepath: Formatlanacak JSON dosyasının yolu
+        **opts: format_json() fonksiyonuna geçirilecek parametreler
+        
+    Raises:
+        ValueError: Dosya içeriği geçersiz JSON ise
+        IOError: Dosya okuma/yazma hatası ise
+    """
+    # Dosyayı oku
+    with open(filepath, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    # Formatla
+    formatted = format_json(content, **opts)
+    
+    # Temp dosya oluştur (aynı dizinde)
+    file_dir = os.path.dirname(filepath) or '.'
+    temp_fd, temp_path = tempfile.mkstemp(dir=file_dir, prefix='.tmp_')
+    
+    try:
+        # Temp dosyaya yaz
+        with os.fdopen(temp_fd, 'w', encoding='utf-8') as f:
+            f.write(formatted)
+        
+        # Orijinal dosyanın izinlerini kopyala
+        shutil.copystat(filepath, temp_path)
+        
+        # Atomik swap
+        os.replace(temp_path, filepath)
+    finally:
+        # Hata durumunda temp dosyasını sil
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
 
 
 def colorize_json(obj: Any, indent: int = 2, sort_keys: bool = False) -> str:
