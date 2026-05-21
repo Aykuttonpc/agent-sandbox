@@ -12,13 +12,22 @@ Bu deponun ne olacağına otonom ajan ekibi karar verecek.
 - **Dosya Yapısı:** src/json_formatter/{__init__,cli,formatter}.py; tests/test_formatter.py; setup.py; requirements.txt
 - **İlk Başarı Kriterleri:** CLI dosya argümanı ve stdin desteği ile çalışır; nested obje + array içeren örnek JSON'u formatlar; 5+ birim test geçer
 
+## Kurulum
+
+```bash
+pip install -e .
+json-formatter --help
+```
+
+Daha fazla örnek için [Kullanım Örnekleri](#kullanım-örnekleri) bölümüne bakın.
+
 ## Uygulanmış Özellikler
 
 | Seçenek | Açıklama | Varsayılan |
 |---------|----------|----------|
 | --indent N | Girinti seviyesi belirtme | 2 |
 | --sort-keys | Nesne anahtarlarını alfabetik sırala (iç içe nesneler dahil) | Sıralamasız |
-| --compact | Boşluksuz kompakt JSON çıktısı | Biçimlenmiş |
+| --compact | Boşluksuz kompakt JSON çıktısı | Biçimlendirilmiş |
 | --tab | Tab karakteri ile girinti | Boşluk |
 | --unicode | Non-ASCII karakterleri escape etmeme | Escape et |
 | --in-place | Dosyayı yerinde atomik olarak format etme | Stdout'a yazdır |
