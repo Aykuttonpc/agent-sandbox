@@ -17,13 +17,7 @@ class JSONFormatter:
         try:
             obj = json.loads(data)
         except json.JSONDecodeError as e:
-            raise json.JSONDecodeError(
-                f"Geçersiz JSON: satır {e.lineno}, sütun {e.colno}: {e.msg}",
-                e.doc,
-                e.pos
-            ) from None
-        except ValueError:
-            raise
+            raise ValueError(f"Geçersiz JSON: {e}") from e
 
         separators = self.separators if self.separators else ((',', ':') if self.compact else (', ', ': '))
 
@@ -35,11 +29,11 @@ class JSONFormatter:
 def format_json(data: str, indent: int = 2, sort_keys: bool = False, compact: bool = False, ensure_ascii: bool = True, unicode: bool = False, tab: bool = False) -> str:
     """JSON verisini formatlar ve string olarak döndürür.
 
-    tab=True ve compact=False ise indent olarak '\t' kullanılır.
+    tab=True ve compact=False ise indent olarak '\\t' kullanılır.
     tab=True ve compact=True ise compact önceliklidir; tab sessizce yoksayılır.
     compact=True ise indent parametresi yok sayılır.
     
-    Geçersiz JSON durumunda json.JSONDecodeError raise eder.
+    Geçersiz JSON durumunda ValueError raise eder.
     """
     if compact:
         indent = None
@@ -49,11 +43,11 @@ def format_json(data: str, indent: int = 2, sort_keys: bool = False, compact: bo
     separators = (',', ':') if compact else (', ', ': ')
     
     formatter = JSONFormatter(indent=actual_indent, sort_keys=sort_keys, compact=compact, ensure_ascii=ensure_ascii and not unicode, separators=separators)
-    return formatter.format(data)  # JSONDecodeError raise et
+    return formatter.format(data)  # ValueError raise et
 
 
 def is_already_formatted(content: str, **opts) -> bool:
-    """Verilen içeriğin halihazırda formatlanmış olup olmadığını kontrol eder.
+    """Verilen içeriğin halıhazırda formatlanmış olup olmadığını kontrol eder.
 
     Karşılaştırma her iki taraf rstrip('\\r\\n') ile normalize edilerek yapılır.
     Geçersiz JSON durumunda False döner.
@@ -73,7 +67,7 @@ def is_formatted(json_str: str, indent: int = 2, sort_keys: bool = False, compac
     Args:
         json_str: JSON string
         indent: İndent seviyesi (default: 2)
-        sort_keys: Anahtarları alfabetik sırala (default: False)
+        sort_keys: Anahtarı alfabetik sırala (default: False)
         compact: Kompakt format (default: False)
         tab: Tab karakteri kullan (default: False)
         unicode_: Non-ASCII karakterleri escape etme (default: False, yani escape et)
@@ -91,7 +85,7 @@ def is_formatted(json_str: str, indent: int = 2, sort_keys: bool = False, compac
     """
     try:
         # unicode_: False → unicode=False (escape et)
-        # unicode_: True → unicode=True (escape etme)
+        # unicode_: True  → unicode=True  (escape etme)
         formatted = format_json(
             json_str,
             indent=indent,
@@ -122,14 +116,14 @@ def format_json_to_file(filepath: str, **opts) -> None:
         **opts: format_json() fonksiyonuna geçirilecek parametreler
         
     Raises:
-        json.JSONDecodeError: Dosya içeriği geçersiz JSON ise
+        ValueError: Dosya içeriği geçersiz JSON ise (JSONDecodeError'ı sarar)
         IOError: Dosya okuma/yazma hatası ise
     """
     # Dosyayı oku
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
     
-    # Formatla (JSONDecodeError raise edebilir)
+    # Formatla (ValueError raise edebilir)
     formatted = format_json(content, **opts)
     
     # Temp dosya oluştur (aynı dizinde)

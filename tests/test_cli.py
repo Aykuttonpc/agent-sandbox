@@ -9,7 +9,7 @@ import pytest
 
 # ---------------------------------------------------------------------------
 # subprocess tabanlı Click CliRunner uyumlu sarıcı
-# CLI argparse kullandığı için Click bağımlılığı olmadan aynı arayüzü sunar.
+# CLI argparse kullandığı için Click bağımlılığı olmadan aynı arayüzyü sunar.
 # ---------------------------------------------------------------------------
 class _CliRunner:
     class _Result:
@@ -49,7 +49,7 @@ class TestCLIVersion:
 
 
 class TestCLISortKeys:
-    """--sort-keys flag'ini stdin ve dosya argumentında test et."""
+    """--sort-keys flag'ini stdin ve dosya argumentinda test et."""
 
     def test_sort_keys_stdin(self):
         """stdin üzerinden --sort-keys flag'ini test et."""
@@ -67,7 +67,7 @@ class TestCLISortKeys:
         assert keys == ['a', 'z'], f"Expected ['a', 'z'], got {keys}"
 
     def test_sort_keys_file(self):
-        """Dosya argumentı üzerinden --sort-keys flag'ini test et."""
+        """Dosya argumenti üzerinden --sort-keys flag'ini test et."""
         input_json = '{"z":1,"a":2}'
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
             f.write(input_json)
@@ -466,7 +466,7 @@ class TestCLITabFlag:
                 assert False, f"Line indented with space instead of tab: {repr(line)}"
 
     def test_cli_tab_file(self):
-        """Dosya argumentı üzerinden --tab flag'ini test et."""
+        """Dosya argumenti üzerinden --tab flag'ini test et."""
         input_json = '{"name":"John","age":30}'
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
             f.write(input_json)
@@ -529,7 +529,7 @@ class TestCLIColor:
         )
         assert result.returncode == 0
         stdout = result.stdout
-        # "true" string value olarak yeşil (\x1b[32m) renkte, tırnaklarıyla birlikte görünmeli
+        # "true" string value olarak yeşil (\x1b[32m) renkte, tırnaklariyla birlikte görünmeli
         assert '\x1b[32m"true"\x1b[0m' in stdout, (
             f'Yeşil renkte "true" bekleniyor; stdout: {repr(stdout)}'
         )
@@ -561,7 +561,7 @@ class TestCLIColor:
 
 
 class TestCLIErrors:
-    """Hatalı giriş senaryolarını test et: var olmayan dosya ve negatif --indent."""
+    """Hatali giriş senaryolarını test et: var olmayan dosya ve negatif --indent."""
 
     def test_nonexistent_file_exit_1(self):
         """(1) Var olmayan dosya yolu → exit code 1 ve stderr'de hata mesajı."""
@@ -702,6 +702,59 @@ class TestCLIDiff:
             )
             assert '\x1b[31m-' in result.stdout, (
                 f"Kırmızı (-) satırı bekleniyor (\\x1b[31m-); stdout: {repr(result.stdout)}"
+            )
+        finally:
+            os.unlink(temp_path)
+
+
+class TestCLIInvalidJSONErrorMessage:
+    """Geçersiz JSON dosyasıyla çalıştırıldığında stderr hata mesajını doğrula.
+
+    formatter.py, JSONDecodeError'u ValueError(f"Geçersiz JSON: {e}") from e olarak
+    sardığından CLI'nin stderr çıktısında:
+      - "Geçersiz JSON" prefix'i bulunmalı,
+      - konum bilgisi için "line" (orijinal İngilizce mesajdan) veya
+        "satır" (Türkçe formatı koruyan CLI katmanından) bulunmalıdır.
+    """
+
+    def test_invalid_json_stderr_contains_gecersiz_json_and_line_info(self):
+        """Geçersiz JSON dosyası verildiğinde stderr'de 'Geçersiz JSON' ve
+        'line' ya da 'satır' kelimesi bulunmalı; exit code 1 olmalı."""
+        result = subprocess.run(
+            [sys.executable, '-m', 'json_formatter', 'tests/data/invalid.json'],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 1, (
+            f"Geçersiz JSON için exit code 1 bekleniyor; alınan: {result.returncode}"
+        )
+        assert "Geçersiz JSON" in result.stderr, (
+            f"stderr 'Geçersiz JSON' içermeli; alınan: {repr(result.stderr)}"
+        )
+        assert ("line" in result.stderr or "satır" in result.stderr), (
+            f"stderr 'line' veya 'satır' içermeli (konum bilgisi); alınan: {repr(result.stderr)}"
+        )
+
+    def test_invalid_json_via_in_place_stderr_contains_gecersiz_json(self):
+        """--in-place ile geçersiz JSON dosyası işlenirken stderr'de 'Geçersiz JSON'
+        ve konum bilgisi ('line' veya 'satır') bulunmalı; exit code 1 olmalı."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            f.write('{invalid')
+            temp_path = f.name
+        try:
+            result = subprocess.run(
+                [sys.executable, '-m', 'json_formatter', '--in-place', temp_path],
+                capture_output=True,
+                text=True,
+            )
+            assert result.returncode == 1, (
+                f"Geçersiz JSON + --in-place için exit code 1 bekleniyor; alınan: {result.returncode}"
+            )
+            assert "Geçersiz JSON" in result.stderr, (
+                f"stderr 'Geçersiz JSON' içermeli; alınan: {repr(result.stderr)}"
+            )
+            assert ("line" in result.stderr or "satır" in result.stderr), (
+                f"stderr 'line' veya 'satır' içermeli; alınan: {repr(result.stderr)}"
             )
         finally:
             os.unlink(temp_path)

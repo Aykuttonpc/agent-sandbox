@@ -11,7 +11,7 @@ from json_formatter import __version__
 
 
 def _non_negative_int(value):
-    """--indent için negatif olmayan tam sayı doğrulayıcı.
+    """--indent için negatif olmayan tam sayı doğrulaycı.
 
     Değer geçerli bir tam sayı değilse ya da negatifse
     argparse.ArgumentTypeError fırlatır; argparse bunu exit code 2 ile sonlandırır.
@@ -57,6 +57,22 @@ def build_parser():
     color_group.add_argument("--no-color", dest="no_color", action="store_true", default=False, help="Renkli çıktıyı zorla kapat")
 
     return parser
+
+
+def _print_format_error(e: ValueError) -> None:
+    """format_json() tarafından fırlatılan ValueError'u stderr'e yazar.
+
+    Neden (cause) bir json.JSONDecodeError ise orijinal Türkçe
+    'satır/sütun' formatını korur; aksi hâlde str(e) yazar.
+    """
+    cause = e.__cause__
+    if isinstance(cause, json.JSONDecodeError):
+        print(
+            f"Geçersiz JSON: satır {cause.lineno}, sütun {cause.colno}: {cause.msg}",
+            file=sys.stderr,
+        )
+    else:
+        print(str(e), file=sys.stderr)
 
 
 def main():
@@ -123,8 +139,8 @@ def main():
         data = sys.stdin.read()
         try:
             result = format_json(data, **fmt_kwargs)
-        except json.JSONDecodeError as e:
-            print(e.msg, file=sys.stderr)
+        except ValueError as e:
+            _print_format_error(e)
             sys.exit(1)
         if use_color:
             result = colorize_json(result)
@@ -194,8 +210,8 @@ def main():
 
             try:
                 result = format_json(data, **fmt_kwargs)
-            except json.JSONDecodeError as e:
-                print(e.msg, file=sys.stderr)
+            except ValueError as e:
+                _print_format_error(e)
                 any_fail = True
                 continue
 
@@ -241,8 +257,8 @@ def main():
 
             try:
                 result = format_json(data, **fmt_kwargs)
-            except json.JSONDecodeError as e:
-                print(e.msg, file=sys.stderr)
+            except ValueError as e:
+                _print_format_error(e)
                 any_fail = True
                 continue
 
@@ -280,8 +296,8 @@ def main():
 
     try:
         result = format_json(data, **fmt_kwargs)
-    except json.JSONDecodeError as e:
-        print(e.msg, file=sys.stderr)
+    except ValueError as e:
+        _print_format_error(e)
         sys.exit(1)
 
     if use_color:
