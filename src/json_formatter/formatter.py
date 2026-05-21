@@ -64,19 +64,19 @@ def is_already_formatted(content: str, **opts) -> bool:
         return False
 
 
-def is_formatted(data_str: str, indent: int = 2, sort_keys: bool = False, unicode_escape: bool = True, compact: bool = False, use_tabs: bool = False) -> bool:
+def is_formatted(json_str: str, indent: int = 2, sort_keys: bool = False, compact: bool = False, tab: bool = False, unicode_: bool = False) -> bool:
     """Verilen JSON string'in verilen parametrelerle formatlanmış olup olmadığını kontrol eder.
     
     Args:
-        data_str: JSON string
+        json_str: JSON string
         indent: İndent seviyesi (default: 2)
         sort_keys: Anahtarları alfabetik sırala (default: False)
-        unicode_escape: Non-ASCII karakterleri escape et (default: True)
         compact: Kompakt format (default: False)
-        use_tabs: Tab karakteri kullan (default: False)
+        tab: Tab karakteri kullan (default: False)
+        unicode_: Non-ASCII karakterleri escape etme (default: False, yani escape et)
     
     Returns:
-        True eğer data_str verilen parametrelerle formatlanmışsa, False aksi halde
+        True eğer json_str verilen parametrelerle formatlanmışsa, False aksi halde
     
     Örnek:
         >>> is_formatted('{"a": 1}')  # Default indent=2, formatlanmış
@@ -87,21 +87,19 @@ def is_formatted(data_str: str, indent: int = 2, sort_keys: bool = False, unicod
         False
     """
     try:
-        # unicode_escape ters mantığı: unicode_escape=True → unicode=False
-        unicode_param = not unicode_escape
-        tab_param = use_tabs
-        
+        # unicode_: False → unicode=False (escape et)
+        # unicode_: True → unicode=True (escape etme)
         formatted = format_json(
-            data_str,
+            json_str,
             indent=indent,
             sort_keys=sort_keys,
-            unicode=unicode_param,
+            unicode=unicode_,
             compact=compact,
-            tab=tab_param
+            tab=tab
         )
         if formatted is None:
             return False
-        return formatted.rstrip("\r\n") == data_str.rstrip("\r\n")
+        return formatted.rstrip("\r\n") == json_str.rstrip("\r\n")
     except (ValueError, TypeError):
         return False
 
