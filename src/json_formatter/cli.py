@@ -15,9 +15,6 @@ def build_parser():
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
     # --compact, --indent ve --tab üçü birbirini dışlayan format grubu.
-    # --indent ile --tab argparse düzeyinde mutex; --compact ile --tab için
-    # ek mutex gerekmez (formatter zaten compact'ı öncelikli yapar), ancak
-    # hepsi aynı grupta olduğundan tutarlılık sağlanmış olur.
     fmt_group = parser.add_mutually_exclusive_group()
     fmt_group.add_argument("--compact", action="store_true", help="Compact JSON çıktısı üret (boşluk yok)")
     fmt_group.add_argument("--indent", type=int, default=2, help="Girinti seviyesi (varsayılan: 2)")
@@ -25,10 +22,10 @@ def build_parser():
 
     parser.add_argument("--sort-keys", action="store_true", default=False, help="Nesne anahtarlarını alfabetik sırala")
 
-    # --in-place ve --check birbirini dışlayan mod grubu (--compact bu gruba dahil değil)
-    mode_group = parser.add_mutually_exclusive_group()
-    mode_group.add_argument("--in-place", "-i", action="store_true", help="Dosyayı yerinde atomik olarak formatla")
-    mode_group.add_argument("--check", action="store_true", help="Dosyanın formatlanmış olup olmadığını kontrol et (yazmaz)")
+    # --in-place ve --check argparse mutually_exclusive_group dışında tutulur;
+    # çakışma main() içinde özel Türkçe mesajla ele alınır (exit 2).
+    parser.add_argument("--in-place", "-i", action="store_true", help="Dosyayı yerinde atomik olarak formatla")
+    parser.add_argument("--check", action="store_true", help="Dosyanın formatlanmış olup olmadığını kontrol et (yazmaz)")
 
     parser.add_argument("--unicode", action="store_true", help="Non-ASCII karakterleri escape etme")
 
@@ -44,17 +41,19 @@ def main():
     args = parser.parse_args()
     files = args.file  # nargs='*' → her zaman liste; boş liste stdin anlamına gelir
 
-    # Glob genişlemesi: '*.json' veya '**/*.json' gibi kalıpları eşleşen dosya
-    # yollarına dönüştür. recursive=True bilerek korunur — '**' kalıp desteği
-    # (alt dizinlerdeki dosyaları da taramak) için bu bayrak zorunludur.
+    # Glob genişlemesi
     expanded = []
     for pattern in files:
         matches = sorted(_glob.glob(pattern, recursive=True))
         expanded.extend(matches if matches else [pattern])
     files = expanded
 
-    # Renk kararı: --color zorla aç, --no-color zorla kapat, varsayılan isatty()
-    # --in-place veya --check aktifse renklendirme atlanır
+    # --check + --in-place birlikte kullanılamaz; özel Türkçe mesajla exit 2
+    if args.check and args.in_place:
+        print("Bu iki flag birlikte kullanılamaz", file=sys.stderr)
+        sys.exit(2)
+
+    # Renk kararı
     if args.in_place or args.check:
         use_color = False
     elif args.color:
@@ -64,8 +63,6 @@ def main():
     else:
         use_color = sys.stdout.isatty()
 
-    # --compact aktifken indent iletilmez; --tab aktifken de indent gerekmez (format_json içi yönetir).
-    # Aksi hâlde kullanıcının seçtiği (ya da varsayılan) indent kullanılır.
     fmt_kwargs = dict(sort_keys=args.sort_keys, compact=args.compact, unicode=args.unicode, tab=args.tab)
     if not args.compact and not args.tab:
         fmt_kwargs["indent"] = args.indent
@@ -75,7 +72,7 @@ def main():
         print("Error: --check requires a file argument, not stdin", file=sys.stderr)
         sys.exit(2)
 
-    # --in-place yalnızca dosya moduyla kullanılabilir; hata argparse üzerinden verilir
+    # --in-place yalnızca dosya moduyla kullanılabilir
     if args.in_place and not files:
         parser.error("--in-place requires a file argument")
 
@@ -97,44 +94,49 @@ def main():
         print(result)
         return
 
-    # --check çoklu dosya modu: is_formatted() ile kontrol et
+    # --check modu
     if args.check:
         any_fail = False
         for filepath in files:
-            # Dosya varlığı kontrolü
             if not os.path.isfile(filepath):
-                print(f"FAIL: {filepath}", file=sys.stdout)
                 print(f"Error: File '{filepath}' not found", file=sys.stderr)
                 any_fail = True
                 continue
-            
+
             try:
                 with open(filepath, 'r') as f:
                     data = f.read()
             except PermissionError:
-                print(f"FAIL: {filepath}", file=sys.stdout)
                 print(f"Error: Permission denied for '{filepath}'", file=sys.stderr)
                 any_fail = True
                 continue
             except OSError as e:
-                print(f"FAIL: {filepath}", file=sys.stdout)
                 print(f"Error: Cannot read '{filepath}' - {e}", file=sys.stderr)
                 any_fail = True
                 continue
-            
-            # is_formatted() ile kontrol et
-            indent_val = args.indent if (not args.compact and not args.tab) else 2
-            if is_formatted(data, indent=indent_val, sort_keys=args.sort_keys, compact=args.compact, tab=args.tab, unicode_=args.unicode):
-                print(f"OK: {filepath}")
-            else:
-                print(f"FAIL: {filepath}")
-                sys.stderr.write("File is not formatted\n")
+
+            # Geçersiz JSON: is_formatted() ile karıştırmadan önce ayrıca kontrol et
+            try:
+                json.loads(data)
+            except json.JSONDecodeError:
+                print("Invalid JSON", file=sys.stderr)
                 any_fail = True
+                continue
+
+            # Formatlı mı kontrolü
+            indent_val = args.indent if (not args.compact and not args.tab) else 2
+            if is_formatted(data, indent=indent_val, sort_keys=args.sort_keys,
+                            compact=args.compact, tab=args.tab, unicode_=args.unicode):
+                print("Already formatted")
+            else:
+                print("File is not formatted")
+                any_fail = True
+
         if any_fail:
             sys.exit(1)
         sys.exit(0)
 
-    # --in-place çoklu dosya modu: NamedTemporaryFile ile atomik yazma, OSError sarması
+    # --in-place çoklu dosya modu: NamedTemporaryFile ile atomik yazma
     if args.in_place:
         any_fail = False
         for filepath in files:
@@ -149,14 +151,14 @@ def main():
                 print(f"Error: Cannot read '{filepath}' - {e}", file=sys.stderr)
                 any_fail = True
                 continue
-            
+
             try:
                 result = format_json(data, **fmt_kwargs)
             except json.JSONDecodeError:
                 print(f"Invalid JSON", file=sys.stderr)
                 any_fail = True
                 continue
-            
+
             dir_name = os.path.dirname(os.path.abspath(filepath))
             tmp_path = None
             try:
@@ -190,13 +192,13 @@ def main():
     except OSError as e:
         print(f"Error: Cannot read '{filepath}' - {e}", file=sys.stderr)
         sys.exit(1)
-    
+
     try:
         result = format_json(data, **fmt_kwargs)
     except json.JSONDecodeError:
         print("Invalid JSON", file=sys.stderr)
         sys.exit(1)
-    
+
     if use_color:
         result = colorize_json(result)
     print(result)
