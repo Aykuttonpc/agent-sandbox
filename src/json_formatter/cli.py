@@ -3,7 +3,7 @@ import os
 import tempfile
 import argparse
 import glob as _glob
-from .formatter import JSONFormatter, format_json, colorize_json, is_already_formatted
+from .formatter import JSONFormatter, format_json, colorize_json, is_already_formatted, is_formatted
 
 
 def build_parser():
@@ -95,7 +95,7 @@ def main():
         print(result)
         return
 
-    # --check çoklu dosya modu
+    # --check çoklu dosya modu: is_formatted() ile kontrol et
     if args.check:
         any_fail = False
         for filepath in files:
@@ -120,7 +120,9 @@ def main():
                 any_fail = True
                 continue
             
-            if is_already_formatted(data, **fmt_kwargs):
+            # is_formatted() ile kontrol et
+            indent_val = args.indent if (not args.compact and not args.tab) else 2
+            if is_formatted(data, indent=indent_val, sort_keys=args.sort_keys, compact=args.compact, tab=args.tab, unicode_=args.unicode):
                 print(f"OK: {filepath}")
             else:
                 print(f"FAIL: {filepath}")

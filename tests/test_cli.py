@@ -109,5 +109,42 @@ class TestCLISortKeys:
         assert '"z"' in output and '"a"' in output
 
 
+class TestCLICheckMode:
+    """--check flag'i ile is_formatted() entegrasyonunu test et."""
+
+    def test_check_formatted_file_returns_exit_0(self):
+        """Formatlanmış dosya --check ile exit code 0 döndürmeli."""
+        # formatted.json zaten tests/data/ altında var
+        result = subprocess.run(
+            ['python', '-m', 'json_formatter', '--check', 'tests/data/formatted.json'],
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode == 0
+        assert "OK:" in result.stdout
+
+    def test_check_unformatted_file_returns_exit_1(self):
+        """Formatlanmamış dosya --check ile exit code 1 döndürmeli."""
+        # unformatted.json zaten tests/data/ altında var
+        result = subprocess.run(
+            ['python', '-m', 'json_formatter', '--check', 'tests/data/unformatted.json'],
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode == 1
+        assert "FAIL:" in result.stdout
+
+    def test_check_invalid_json_file_returns_exit_1(self):
+        """Geçersiz JSON dosyası --check ile exit code 1 döndürmeli."""
+        # invalid.json zaten tests/data/ altında var
+        result = subprocess.run(
+            ['python', '-m', 'json_formatter', '--check', 'tests/data/invalid.json'],
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode == 1
+        assert "FAIL:" in result.stdout
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
