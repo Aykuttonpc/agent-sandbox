@@ -100,14 +100,22 @@ def main():
     if args.check:
         any_fail = False
         for filepath in files:
+            # Dosya varlığı kontrolü
+            if not os.path.isfile(filepath):
+                print(f"FAIL: {filepath}", file=sys.stdout)
+                print(f"Error: File not found '{filepath}'", file=sys.stderr)
+                any_fail = True
+                continue
+            
             try:
                 with open(filepath, 'r') as f:
                     data = f.read()
             except OSError as e:
-                print(f"FAIL: {filepath}")
+                print(f"FAIL: {filepath}", file=sys.stdout)
                 print(f"Error: Cannot read '{filepath}' - {e}", file=sys.stderr)
                 any_fail = True
                 continue
+            
             if is_already_formatted(data, **fmt_kwargs):
                 print(f"OK: {filepath}")
             else:

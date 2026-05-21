@@ -57,6 +57,46 @@ def is_already_formatted(content: str, **opts) -> bool:
         return False
 
 
+def is_formatted(data_str: str, indent: int = 2, sort_keys: bool = False, unicode_escape: bool = True, compact: bool = False, use_tabs: bool = False) -> bool:
+    """Verilen JSON string'in verilen parametrelerle formatlanmış olup olmadığını kontrol eder.
+    
+    Args:
+        data_str: JSON string
+        indent: İndent seviyesi (default: 2)
+        sort_keys: Anahtarları alfabetik sırala (default: False)
+        unicode_escape: Non-ASCII karakterleri escape et (default: True)
+        compact: Kompakt format (default: False)
+        use_tabs: Tab karakteri kullan (default: False)
+    
+    Returns:
+        True eğer data_str verilen parametrelerle formatlanmışsa, False aksi halde
+    
+    Örnek:
+        >>> is_formatted('{"a": 1}')  # Default indent=2, formatlanmış
+        True
+        >>> is_formatted('{"a":1}')  # Kompakt, formatlanmamış
+        False
+        >>> is_formatted('{"b": 1, "a": 2}', sort_keys=True)  # sort-keys yok
+        False
+    """
+    try:
+        # unicode_escape ters mantığı: unicode_escape=True → unicode=False
+        unicode_param = not unicode_escape
+        tab_param = use_tabs
+        
+        formatted = format_json(
+            data_str,
+            indent=indent,
+            sort_keys=sort_keys,
+            unicode=unicode_param,
+            compact=compact,
+            tab=tab_param
+        )
+        return formatted.rstrip("\r\n") == data_str.rstrip("\r\n")
+    except ValueError:
+        return False
+
+
 def format_json_to_file(filepath: str, **opts) -> None:
     """Dosyadaki JSON'ı formatlar ve aynı dosyaya atomik biçimde yazar.
     

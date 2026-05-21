@@ -470,6 +470,73 @@ class TestJSONFormatter(unittest.TestCase):
             os.unlink(tmp_path)
 
 
+# --- YENİ TESTLER: is_formatted() fonksiyonu (dört test) ---
+
+def test_is_formatted_default_indented_true():
+    """(1) Default olarak biçimlenmiş JSON → is_formatted(...) True döndürmeli.
+    
+    Örneğin, indent=2, sort_keys=False, unicode_escape=True, compact=False, use_tabs=False
+    (tümü varsayılan) olan biçimlendirilmiş JSON.
+    """
+    from json_formatter.formatter import is_formatted
+    from json_formatter import format_json
+    # Önce bir JSON'ı formatla
+    raw = '{"name":"John","age":30}'
+    formatted = format_json(raw)  # Default parametrelerle formatla
+    # Şimdi bu formatlanmış JSON'un kendisi formatlanmış olup olmadığını kontrol et
+    assert is_formatted(formatted) is True
+
+
+def test_is_formatted_compact_json_false():
+    """(2) Kompakt JSON (boşluksuz) → is_formatted(...) False döndürmeli.
+    
+    Çünkü varsayılan parametreler ile formatlanmamıştır (indent=2 bekleniyor).
+    """
+    from json_formatter.formatter import is_formatted
+    compact_data = '{"a":1,"b":2}'
+    # Varsayılan parametrelerle (indent=2) formatlanmamış
+    assert is_formatted(compact_data) is False
+    # Ama compact=True ile formatlanmış
+    assert is_formatted(compact_data, compact=True) is True
+
+
+def test_is_formatted_sort_keys_false():
+    """(3) Sort-keys olmayan sıra → sort_keys=True ile is_formatted False döndürmeli.
+    
+    {"b": 1, "a": 2} alfabetik sıradadef değildir, bu yüzden
+    is_formatted(..., sort_keys=True) False döner.
+    """
+    from json_formatter.formatter import is_formatted
+    data = '{"b": 1, "a": 2}'  # b, a sırasında (alfabetik değil)
+    # sort_keys=False (varsayılan) ile: False çünkü "a" ve "b" sırası beklenmez
+    # Daha doğrusu: bu string varsayılan parametrelerle formatlanmamış çünkü
+    # format_json ile formatlandığında sorted sırasına gelmeyebilir
+    # Ama sort_keys=True ile istersek, output {"a": 2, "b": 1} olur
+    formatted_with_sort = '{"a": 2, "b": 1}'  # sort_keys=True ile
+    assert is_formatted(data, sort_keys=True) is False  # Çünkü data sıralı değil
+    assert is_formatted(formatted_with_sort, sort_keys=True) is True
+
+
+def test_is_formatted_unicode_escape_false_true():
+    """(4) Unicode karakterleri korunmuş JSON → unicode_escape=False ile True döndürmeli.
+    
+    unicode_escape=False ↔ unicode=True (ters mantık)
+    İçeride ü karakteri korunmuş olan JSON.
+    """
+    from json_formatter.formatter import is_formatted
+    from json_formatter import format_json
+    # Unicode karakteri korunmuş JSON
+    data_unicode = '{"key": "ü"}'
+    # format_json(..., unicode=True) ile formatla
+    formatted = format_json(data_unicode, unicode=True)
+    # Şimdi is_formatted(..., unicode_escape=False) True döndürmeli
+    # Çünkü unicode_escape=False → unicode=True
+    assert is_formatted(formatted, unicode_escape=False) is True
+    # Ama unicode_escape=True (varsayılan) ile False
+    # Çünkü karakterler escape edilmiş olmalı
+    assert is_formatted(formatted, unicode_escape=True) is False
+
+
 # --- Bağımsız pytest testleri ---
 
 def test_invalid_json_error_message_contains_location():
