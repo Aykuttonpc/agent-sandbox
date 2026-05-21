@@ -146,5 +146,19 @@ class TestCLICheckMode:
         assert "FAIL:" in result.stdout
 
 
+class TestCLIInvalidJSON:
+    """Invalid JSON dosyası ile test et."""
+
+    def test_cli_invalid_json_exit_code(self):
+        """Invalid JSON dosyası ile çalıştır, returncode==1 ve stderr'da 'Invalid JSON' mesajı assert et."""
+        result = subprocess.run(
+            ['python', '-m', 'json_formatter', 'tests/data/invalid.json'],
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode == 1
+        assert "Invalid JSON" in result.stderr
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

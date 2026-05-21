@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 import tempfile
 import argparse
 import glob as _glob
@@ -86,8 +87,9 @@ def main():
     # Stdin modu (dosya verilmemişse)
     if not files:
         data = sys.stdin.read()
-        result = format_json(data, **fmt_kwargs)
-        if result is None:
+        try:
+            result = format_json(data, **fmt_kwargs)
+        except json.JSONDecodeError:
             print("Invalid JSON", file=sys.stderr)
             sys.exit(1)
         if use_color:
@@ -147,11 +149,14 @@ def main():
                 print(f"Error: Cannot read '{filepath}' - {e}", file=sys.stderr)
                 any_fail = True
                 continue
-            result = format_json(data, **fmt_kwargs)
-            if result is None:
+            
+            try:
+                result = format_json(data, **fmt_kwargs)
+            except json.JSONDecodeError:
                 print(f"Invalid JSON", file=sys.stderr)
                 any_fail = True
                 continue
+            
             dir_name = os.path.dirname(os.path.abspath(filepath))
             tmp_path = None
             try:
@@ -185,10 +190,13 @@ def main():
     except OSError as e:
         print(f"Error: Cannot read '{filepath}' - {e}", file=sys.stderr)
         sys.exit(1)
-    result = format_json(data, **fmt_kwargs)
-    if result is None:
+    
+    try:
+        result = format_json(data, **fmt_kwargs)
+    except json.JSONDecodeError:
         print("Invalid JSON", file=sys.stderr)
         sys.exit(1)
+    
     if use_color:
         result = colorize_json(result)
     print(result)
