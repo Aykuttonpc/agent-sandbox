@@ -31,7 +31,7 @@ def build_parser():
     """Argüman ayrıştırıcıyı oluşturup döndürür."""
     parser = argparse.ArgumentParser(description="Format JSON from file or stdin")
     parser.add_argument("file", nargs="*", help="JSON file(s) to format (optional, read from stdin if not provided)")
-    parser.add_argument("--version", action="version", version=f"json-formatter {__version__}")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
     # --compact, --indent ve --tab üçü birbirini dışlayan format grubu.
     fmt_group = parser.add_mutually_exclusive_group()

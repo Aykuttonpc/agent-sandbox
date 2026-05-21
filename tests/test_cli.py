@@ -28,6 +28,26 @@ class _CliRunner:
 cli = None
 
 
+class TestCLIVersion:
+    """--version flag'ini test et."""
+
+    def test_version_flag(self):
+        """--version flag'ı sürüm numarasını stdout veya stderr'da göstermeli ve exit code 0 döndürmeli."""
+        from json_formatter import __version__
+        result = subprocess.run(
+            ["json-formatter", "--version"],
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode == 0, (
+            f"--version için exit code 0 bekleniyor; alınan: {result.returncode}"
+        )
+        combined = result.stdout + result.stderr
+        assert __version__ in combined, (
+            f"Sürüm numarası '{__version__}' çıktıda bekleniyor; alınan: {repr(combined)}"
+        )
+
+
 class TestCLISortKeys:
     """--sort-keys flag'ini stdin ve dosya argumentında test et."""
 

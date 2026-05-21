@@ -25,6 +25,7 @@ Daha fazla örnek için [Kullanım Örnekleri](#kullanım-örnekleri) bölümün
 
 | Seçenek | Açıklama | Varsayılan |
 |---------|----------|----------|
+| --version | Araç sürümünü göster ve çık | - |
 | --indent N | Girinti seviyesi belirtme | 2 |
 | --sort-keys | Nesne anahtarlarını alfabetik sırala (iç içe nesneler dahil) | Sıralamasız |
 | --compact | Boşluksuz kompakt JSON çıktısı | Biçimlendirilmiş |
@@ -105,6 +106,7 @@ echo '{"türkçe":"değer"}' | json-formatter --unicode
 ### Seçenek Örnekleri
 
 ```bash
+json-formatter --version
 json-formatter --sort-keys data.json
 json-formatter --compact config.json
 json-formatter --indent 4 data.json
