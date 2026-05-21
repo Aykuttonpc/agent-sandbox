@@ -3,7 +3,29 @@ import json
 import tempfile
 import os
 import sys
+import unittest
 import pytest
+
+
+# ---------------------------------------------------------------------------
+# subprocess tabanlı Click CliRunner uyumlu sarıcı
+# CLI argparse kullandığı için Click bağımlılığı olmadan aynı arayüzü sunar.
+# ---------------------------------------------------------------------------
+class _CliRunner:
+    class _Result:
+        def __init__(self, returncode):
+            self.exit_code = returncode
+
+    def invoke(self, _cli, args):
+        r = subprocess.run(
+            [sys.executable, '-m', 'json_formatter'] + args,
+            capture_output=True
+        )
+        return self._Result(r.returncode)
+
+
+# cli parametresi _CliRunner.invoke içinde kullanılmaz; yalnızca arayüz uyumu için.
+cli = None
 
 
 class TestCLISortKeys:
@@ -182,8 +204,11 @@ class TestCLIInvalidJSON:
         assert "Invalid JSON" in result.stderr
 
 
-class TestCLIInPlace:
+class TestCLIInPlace(unittest.TestCase):
     """--in-place flag'ini atomik yazma ile test et."""
+
+    def setUp(self):
+        self.runner = _CliRunner()
 
     def test_cli_in_place_successful_write(self):
         """--in-place ile başarılı yazma: dosya formatlanmış olmalı."""
@@ -312,6 +337,19 @@ class TestCLIInPlace:
         finally:
             os.unlink(temp_path1)
             os.unlink(temp_path2)
+
+    def test_in_place_invalid_json_leaves_file_unchanged(self):
+        original_content = b'{"key": invalid}'
+        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+            f.write(original_content)
+            tmp_name = f.name
+        try:
+            result = self.runner.invoke(cli, ['--in-place', tmp_name])
+            self.assertEqual(result.exit_code, 1)
+            with open(tmp_name, 'rb') as f:
+                self.assertEqual(f.read(), original_content)
+        finally:
+            os.unlink(tmp_name)
 
 
 class TestCLICompactFlag:
