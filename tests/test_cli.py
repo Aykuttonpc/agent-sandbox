@@ -2,6 +2,7 @@ import subprocess
 import json
 import tempfile
 import os
+import sys
 import pytest
 
 
@@ -92,6 +93,17 @@ class TestCLISortKeys:
         finally:
             os.unlink(temp_path)
 
+    def test_sort_keys_file_nested(self):
+        """Dosya argümanı ile nested.json'ı --sort-keys flag'ı ile formatla ve tüm seviyelerdeki anahtarların sıralanmış olduğunu doğrula."""
+        result = subprocess.run([sys.executable, '-m', 'json_formatter', 'tests/data/nested.json', '--sort-keys'], capture_output=True, text=True)
+        assert result.returncode == 0
+        output = json.loads(result.stdout)
+        assert list(output.keys()) == sorted(output.keys())
+        assert list(output['app'].keys()) == sorted(output['app'].keys())
+        assert list(output['app']['config'].keys()) == sorted(output['app']['config'].keys())
+        for user in output['users']:
+            assert list(user['settings'].keys()) == sorted(user['settings'].keys())
+
     def test_sort_keys_without_flag_preserves_order_stdin(self):
         """--sort-keys olmadan giriş sırası korunmalı (stdin)."""
         input_json = '{"z":1,"a":2}'
@@ -135,7 +147,7 @@ class TestCLICheckMode:
         assert "FAIL:" in result.stdout
 
     def test_check_flag_file_not_formatted(self):
-        """--check flag'ı biçimlendirilmemiş dosya için exit 1 ve "File is not formatted" çıktısı döndürmeli."""
+        """--check flag'ı biçimlendirilmemiş dosya için exit 1 ve \"File is not formatted\" çıktısı döndürmeli."""
         result = subprocess.run(
             ['python', '-m', 'json_formatter', '--check', 'tests/data/unformatted.json'],
             capture_output=True,

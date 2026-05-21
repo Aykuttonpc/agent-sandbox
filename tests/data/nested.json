@@ -1,0 +1,26 @@
+{
+  "app": {
+    "config": {
+      "database": "postgres",
+      "port": 5432
+    },
+    "name": "MyApp",
+    "version": "1.0"
+  },
+  "users": [
+    {
+      "name": "John",
+      "settings": {
+        "notifications": true,
+        "theme": "dark"
+      }
+    },
+    {
+      "name": "Jane",
+      "settings": {
+        "language": "en",
+        "theme": "light"
+      }
+    }
+  ]
+}
