@@ -6,6 +6,7 @@ import pytest
 from io import StringIO
 from unittest.mock import patch
 from json_formatter import JSONFormatter
+import json
 
 
 def test_version_flag():
@@ -1001,6 +1002,21 @@ def test_tab_and_indent_mutually_exclusive_subprocess_exits_2():
     )
     assert result.returncode == 2
     assert 'not allowed' in result.stderr.lower()
+
+
+# --- YENİ TEST: Round-trip Unicode doğrulaması (Critic'in önerdiği) ---
+
+def test_format_json_unicode_preserve():
+    """unicode=True seçeneği Türkçe karakterleri escape etmemeli"""
+    from json_formatter import format_json
+    input_data = '{"başlık": "Merhaba", "şehir": "Eskişehir"}'
+    result = format_json(input_data, unicode=True)
+    # Round-trip: format_json gerçekten JSON işlediğini doğrula
+    parsed = json.loads(result)
+    assert parsed["başlık"] == "Merhaba"
+    assert parsed["şehir"] == "Eskişehir"
+    # Escape sequence olmadığını doğrula
+    assert '\\u' not in result
 
 
 if __name__ == '__main__':
