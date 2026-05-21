@@ -508,11 +508,44 @@ class TestCLIColor:
         stdout = result.stdout
         # "true" string value olarak yeşil (\x1b[32m) renkte, tırnaklarıyla birlikte görünmeli
         assert '\x1b[32m"true"\x1b[0m' in stdout, (
-            f'Yeşil renkte \"true\" bekleniyor; stdout: {repr(stdout)}'
+            f'Yeşil renkte "true" bekleniyor; stdout: {repr(stdout)}'
         )
         # Çıplak boolean token'ı olarak mavi (\x1b[34m) görünmemeli
         assert '\x1b[34mtrue\x1b[0m' not in stdout, (
             f'Mavi renkte çıplak true beklenmiyor; stdout: {repr(stdout)}'
+        )
+
+
+class TestCLIErrors:
+    """Hatalı giriş senaryolarını test et: var olmayan dosya ve negatif --indent."""
+
+    def test_nonexistent_file_exit_1(self):
+        """(1) Var olmayan dosya yolu → exit code 1 ve stderr'de hata mesajı."""
+        result = subprocess.run(
+            [sys.executable, '-m', 'json_formatter', '/nonexistent/path/no_such_file_xyz.json'],
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode == 1, (
+            f"Var olmayan dosya için exit code 1 bekleniyor, alınan: {result.returncode}"
+        )
+        assert result.stderr.strip() != "", (
+            f"Var olmayan dosya için stderr'de hata mesajı bekleniyor; stderr boş"
+        )
+
+    def test_indent_negative_exit_2(self):
+        """(2) --indent -1 → exit code 2 ve stderr'de hata mesajı."""
+        result = subprocess.run(
+            [sys.executable, '-m', 'json_formatter', '--indent', '-1'],
+            input='{"a": 1}',
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode == 2, (
+            f"--indent -1 için exit code 2 bekleniyor, alınan: {result.returncode}"
+        )
+        assert result.stderr.strip() != "", (
+            f"--indent -1 için stderr'de hata mesajı bekleniyor; stderr boş"
         )
 
 

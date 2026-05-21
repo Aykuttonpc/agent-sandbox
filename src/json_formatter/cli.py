@@ -8,6 +8,23 @@ from .formatter import JSONFormatter, format_json, is_already_formatted, is_form
 from .color import colorize_json
 
 
+def _non_negative_int(value):
+    """--indent için negatif olmayan tam sayı doğrulayıcı.
+
+    Değer geçerli bir tam sayı değilse ya da negatifse
+    argparse.ArgumentTypeError fırlatır; argparse bunu exit code 2 ile sonlandırır.
+    """
+    try:
+        ivalue = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Geçersiz tam sayı değeri: '{value}'")
+    if ivalue < 0:
+        raise argparse.ArgumentTypeError(
+            f"--indent negatif olamaz: {ivalue}"
+        )
+    return ivalue
+
+
 def build_parser():
     """Argüman ayrıştırıcıyı oluşturup döndürür."""
     from json_formatter import __version__
@@ -18,7 +35,7 @@ def build_parser():
     # --compact, --indent ve --tab üçü birbirini dışlayan format grubu.
     fmt_group = parser.add_mutually_exclusive_group()
     fmt_group.add_argument("--compact", action="store_true", help="Compact JSON çıktısı üret (boşluk yok)")
-    fmt_group.add_argument("--indent", type=int, default=2, help="Girinti seviyesi (varsayılan: 2)")
+    fmt_group.add_argument("--indent", type=_non_negative_int, default=2, help="Girinti seviyesi (varsayılan: 2); negatif değer kabul edilmez")
     fmt_group.add_argument("--tab", action="store_true", help="Tab karakteri (\\t) ile girintile")
 
     parser.add_argument("--sort-keys", action="store_true", default=False, help="Nesne anahtarlarını alfabetik sırala")
@@ -190,10 +207,10 @@ def main():
             data = f.read()
     except FileNotFoundError:
         print(f"Error: File '{filepath}' not found", file=sys.stderr)
-        sys.exit(2)
+        sys.exit(1)
     except PermissionError:
         print(f"Error: Permission denied for '{filepath}'", file=sys.stderr)
-        sys.exit(2)
+        sys.exit(1)
     except OSError as e:
         print(f"Error: Cannot read '{filepath}' - {e}", file=sys.stderr)
         sys.exit(1)
