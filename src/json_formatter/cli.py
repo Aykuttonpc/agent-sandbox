@@ -3,7 +3,7 @@ import os
 import tempfile
 import argparse
 from . import __version__
-from .formatter import JSONFormatter, format_json, colorize_json
+from .formatter import JSONFormatter, format_json, colorize_json, is_already_formatted
 
 
 def build_parser():
@@ -19,7 +19,7 @@ def build_parser():
     parser.add_argument("--sort-keys", action="store_true", default=False, help="Nesne anahtarlarını alfabetik sırala")
     parser.add_argument("--in-place", "-i", action="store_true", help="Dosyayı yerinde atomik olarak formatla")
     parser.add_argument("--check", action="store_true", help="Dosyanın formatlanmış olup olmadığını kontrol et (yazmaz)")
-    parser.add_argument("--unicode", action="store_true", help="Non-ASCII karakterleri escape etmeden yaz (--check ile birlikte kullanıldığında etkisizdir)")
+    parser.add_argument("--unicode", action="store_true", help="Non-ASCII karakterleri escape etmeden yaz")
 
     color_group = parser.add_mutually_exclusive_group()
     color_group.add_argument("--color", action="store_true", default=False, help="Renkli çıktıyı zorla aç")
@@ -93,19 +93,11 @@ def main():
                 print(f"Error: File '{filepath}' not found", file=sys.stderr)
                 any_fail = True
                 continue
-            try:
-                result = format_json(data, **fmt_kwargs)
-            except ValueError as e:
-                print(f"FAIL: {filepath}")
-                print(f"Error: Invalid JSON in '{filepath}' - {e}", file=sys.stderr)
-                any_fail = True
-                continue
-            if result.strip() == data.strip():
+            if is_already_formatted(data, **fmt_kwargs):
                 print(f"OK: {filepath}")
             else:
                 print(f"FAIL: {filepath}")
-                # Geriye dönük uyumluluk: tek dosya testleri bu mesajı stderr'de arar
-                print(f"File is not formatted: {filepath}", file=sys.stderr)
+                sys.stderr.write(f"{filepath}: not formatted\n")
                 any_fail = True
         if any_fail:
             sys.exit(1)

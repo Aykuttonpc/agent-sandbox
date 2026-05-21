@@ -93,7 +93,6 @@ class TestJSONFormatter(unittest.TestCase):
                 main()
             with open(tmp_path, 'r') as f:
                 content = f.read()
-            # Formatlanmış çıktı girintili olmalı
             self.assertIn('"b": 2', content)
             self.assertIn('"a": 1', content)
             self.assertIn('\n', content)
@@ -122,7 +121,6 @@ class TestJSONFormatter(unittest.TestCase):
             self.assertEqual(cm.exception.code, 1)
             with open(tmp_path, 'r') as f:
                 content = f.read()
-            # Orijinal içerik değişmemiş olmalı
             self.assertEqual(content, original)
         finally:
             os.unlink(tmp_path)
@@ -147,7 +145,7 @@ class TestJSONFormatter(unittest.TestCase):
             os.unlink(tmp_path)
 
     def test_check_unformatted_file_exits_1_with_stderr(self):
-        """Formatlanmamış dosya --check ile exit 1 ve stderr mesajı döndürmeli"""
+        """Formatlanmamış dosya --check ile exit 1 ve stderr 'not formatted' mesajı döndürmeli"""
         from json_formatter.cli import main
         with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
             f.write('{"b":2,"a":1}')
@@ -158,7 +156,7 @@ class TestJSONFormatter(unittest.TestCase):
                     with self.assertRaises(SystemExit) as cm:
                         main()
                     self.assertEqual(cm.exception.code, 1)
-                    self.assertIn('File is not formatted', mock_err.getvalue())
+                    self.assertIn('not formatted', mock_err.getvalue())
         finally:
             os.unlink(tmp_path)
 
@@ -213,7 +211,6 @@ class TestJSONFormatter(unittest.TestCase):
         from json_formatter import format_json
         data = '{"b": 1, "a": 2}'
         result = format_json(data, sort_keys=True)
-        # "a" anahtarı çıktıda "b"den önce gelmelidir
         self.assertLess(result.index('"a"'), result.index('"b"'))
         self.assertIn('"a": 2', result)
         self.assertIn('"b": 1', result)
@@ -238,7 +235,6 @@ class TestJSONFormatter(unittest.TestCase):
                 main()
             with open(tmp_path, 'r') as f:
                 content = f.read()
-            # Anahtarlar alfabetik sırada olmalı: "a" önce, "b" sonra
             self.assertLess(content.index('"a"'), content.index('"b"'))
             self.assertIn('\n', content)
             self.assertIn('"a": 2', content)
@@ -276,7 +272,7 @@ class TestJSONFormatter(unittest.TestCase):
         self.assertIn('ü', result)
         self.assertNotIn('\\u00fc', result)
 
-    # --- çoklu dosya testleri (5 yeni test) ---
+    # --- çoklu dosya testleri ---
 
     def test_no_args_reads_from_stdin(self):
         """Argümansız çağrıda stdin'den okuyup stdout'a yazmalı (regression)"""
@@ -300,7 +296,7 @@ class TestJSONFormatter(unittest.TestCase):
                 f.close()
                 files.append(f.name)
             with patch('sys.argv', ['json-formatter', '--in-place'] + files):
-                main()  # başarılı → SystemExit yok
+                main()
             with open(files[0]) as f:
                 c1 = f.read()
             with open(files[1]) as f:
@@ -319,7 +315,6 @@ class TestJSONFormatter(unittest.TestCase):
         from json_formatter.cli import main
         files = []
         try:
-            # İlk dosya geçersiz JSON, ikinci dosya geçerli
             for raw in ['{bad json}', '{"ok":true}']:
                 f = tempfile.NamedTemporaryFile('w', suffix='.json', delete=False)
                 f.write(raw)
@@ -331,10 +326,8 @@ class TestJSONFormatter(unittest.TestCase):
                         main()
                     self.assertEqual(cm.exception.code, 1)
                     self.assertIn('Invalid JSON', mock_err.getvalue())
-            # Geçersiz dosya değişmemiş olmalı
             with open(files[0]) as f:
                 self.assertEqual(f.read(), '{bad json}')
-            # Geçerli dosya formatlanmış olmalı
             with open(files[1]) as f:
                 content = f.read()
             self.assertIn('\n', content)
@@ -352,12 +345,10 @@ class TestJSONFormatter(unittest.TestCase):
         formatted = formatter.format(unformatted)
         files = []
         try:
-            # İlk dosya zaten formatlanmış → OK bekleniyor
             f1 = tempfile.NamedTemporaryFile('w', suffix='.json', delete=False)
             f1.write(formatted)
             f1.close()
             files.append(f1.name)
-            # İkinci dosya formatlanmamış → FAIL bekleniyor
             f2 = tempfile.NamedTemporaryFile('w', suffix='.json', delete=False)
             f2.write(unformatted)
             f2.close()
@@ -396,7 +387,7 @@ class TestJSONFormatter(unittest.TestCase):
                 if os.path.exists(fp):
                     os.unlink(fp)
 
-    # --- compact parametresi: format_json() üzerinden 2 yeni test ---
+    # --- compact parametresi: format_json() üzerinden testler ---
 
     def test_format_json_compact_no_spaces(self):
         """format_json: compact=True ile {"a": 1} → {"a":1} (boşluk yok)"""
@@ -417,7 +408,6 @@ class TestJSONFormatter(unittest.TestCase):
     def test_colorize_string_value_wrapped_with_green_ansi(self):
         """(a) String değer yeşil ANSI koduyla (\033[32m) sarılmalı"""
         from json_formatter.formatter import colorize_json
-        # json.dumps çıktısına eşdeğer biçimlendirilmiş JSON
         text = '{\n  "name": "John"\n}'
         result = colorize_json(text)
         self.assertIn('\033[32m"John"\033[0m', result)
@@ -459,10 +449,10 @@ def test_version_flag(capsys):
     assert __version__ in captured.out
 
 
-# --- YENİ: compact parametresi ve mutually exclusive grup testleri ---
+# --- compact parametresi ve mutually exclusive grup testleri ---
 
 def test_compact_true_no_space_no_newline():
-    """format_json('{"a":1}', compact=True) çıktısı ' ' ve '\\n' içermemeli (iki ayrı assert)."""
+    """format_json('{"a":1}', compact=True) çıktısı ' ' ve '\\n' içermemeli."""
     from json_formatter import format_json
     result = format_json('{"a":1}', compact=True)
     assert ' ' not in result
@@ -475,7 +465,6 @@ def test_compact_false_preserves_default_behavior():
     result_explicit = format_json('{"a":1}', compact=False)
     result_default = format_json('{"a":1}')
     assert result_explicit == result_default
-    # Varsayılan çıktı girintili (newline içeren) olmalı
     assert '\n' in result_explicit
 
 
@@ -484,9 +473,7 @@ def test_compact_color_integration_no_newline():
     from json_formatter import format_json
     from json_formatter.formatter import colorize_json
     compact_result = format_json('{"a":1}', compact=True)
-    # compact çıktı zaten newline içermemeli
     assert '\n' not in compact_result
-    # colorize_json uygulandıktan sonra da newline olmamalı
     colored = colorize_json(compact_result)
     assert '\n' not in colored
 
@@ -497,6 +484,58 @@ def test_build_parser_compact_and_indent_mutually_exclusive_exits_2():
     with pytest.raises(SystemExit) as exc_info:
         build_parser().parse_args(['--compact', '--indent', '4'])
     assert exc_info.value.code == 2
+
+
+# --- is_already_formatted testleri (5 yeni test) ---
+
+def test_is_already_formatted_formatted_json_returns_true():
+    """(1) Formatlanmış JSON içeriği → is_already_formatted True döndürmeli."""
+    from json_formatter.formatter import is_already_formatted
+    from json_formatter import format_json
+    raw = '{"name":"John","age":30}'
+    formatted = format_json(raw)
+    assert is_already_formatted(formatted) is True
+
+
+def test_is_already_formatted_unformatted_json_returns_false():
+    """(2) Formatlanmamış (kompakt) JSON içeriği → is_already_formatted False döndürmeli."""
+    from json_formatter.formatter import is_already_formatted
+    assert is_already_formatted('{"b":2,"a":1}') is False
+
+
+def test_is_already_formatted_invalid_json_returns_false():
+    """(3) Geçersiz JSON içeriği → is_already_formatted ValueError yakaladığından False döndürmeli."""
+    from json_formatter.formatter import is_already_formatted
+    assert is_already_formatted('{invalid json}') is False
+
+
+def test_is_already_formatted_compact_mode_true_and_false():
+    """(4) compact=True ile formatlanmış kompakt girdi → True; compact=False ile aynı girdi → False."""
+    from json_formatter.formatter import is_already_formatted
+    compact_input = '{"a":1,"b":2}'
+    assert is_already_formatted(compact_input, compact=True) is True
+    assert is_already_formatted(compact_input, compact=False) is False
+
+
+def test_check_subprocess_unformatted_file_exits_1_stderr_not_formatted():
+    """(5) subprocess --check ile formatlanmamış dosyada returncode==1, stderr 'not formatted' içermeli."""
+    import sys
+    import subprocess
+    import tempfile
+    import os
+    with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
+        f.write('{"b":2,"a":1}')
+        tmp_path = f.name
+    try:
+        result = subprocess.run(
+            [sys.executable, '-m', 'json_formatter', '--check', tmp_path],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 1
+        assert 'not formatted' in result.stderr
+    finally:
+        os.unlink(tmp_path)
 
 
 if __name__ == '__main__':

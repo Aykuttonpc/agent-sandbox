@@ -25,6 +25,19 @@ def format_json(data: str, indent: int = 2, sort_keys: bool = False, compact: bo
     return formatter.format(data)
 
 
+def is_already_formatted(content: str, **opts) -> bool:
+    """Verilen içeriğin halihazırda formatlanmış olup olmadığını kontrol eder.
+
+    Karşılaştırma her iki taraf rstrip('\\r\\n') ile normalize edilerek yapılır.
+    Geçersiz JSON durumunda (ValueError) False döner.
+    """
+    try:
+        formatted = format_json(content, **opts)
+        return formatted.rstrip("\r\n") == content.rstrip("\r\n")
+    except ValueError:
+        return False
+
+
 def colorize_json(text: str) -> str:
     """Biçimlendirilmiş JSON metnine ANSI renk kodları uygular.
 
