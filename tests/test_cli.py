@@ -292,5 +292,77 @@ class TestCLIInPlace:
             os.unlink(temp_path2)
 
 
+class TestCLICompactFlag:
+    """--compact flag'i ile boşluksuz JSON çıktısını test et."""
+
+    def test_compact_basic_functionality(self):
+        """--compact flag'ı ile boşluksuz JSON üretmeyi test et.
+        
+        Kontroller:
+        (a) Çıktı geçerli JSON
+        (b) Newline karakteri yok
+        (c) İndentation yok (satır başında boşluk yok)
+        """
+        result = subprocess.run(
+            ['python', '-m', 'json_formatter', '--compact', 'tests/data/sample.json'],
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode == 0
+        output = result.stdout.strip()
+        
+        # (a) Geçerli JSON olduğunu kontrol et (json.loads() ile parse et)
+        parsed = json.loads(output)
+        assert parsed is not None
+        
+        # (b) Newline karakteri (`\n`) içermediğini assert et
+        assert '\n' not in output, f"Output contains newlines: {repr(output)}"
+        
+        # (c) Satır başında boşluk olmadığını (indentation yok) assert et
+        assert not output.startswith(' '), "Output starts with space (has indentation)"
+        assert not output.startswith('\t'), "Output starts with tab (has indentation)"
+
+    def test_compact_with_sort_keys(self):
+        """--compact --sort-keys kombinasyonu ile boşluksuz ve sıralanmış JSON üretmeyi test et.
+        
+        Kontroller:
+        (a) Çıktı geçerli JSON
+        (b) Recursive olarak tüm nested objelerin anahtarları alfabetik sıralanmış
+        """
+        def is_keys_sorted_recursive(obj):
+            """Verilen nesnenin tüm dict anahtarlarının alfabetik sıralanmış olup olmadığını kontrol et."""
+            if isinstance(obj, dict):
+                keys = list(obj.keys())
+                if keys != sorted(keys):
+                    return False
+                # Tüm değerleri recursive kontrol et
+                for value in obj.values():
+                    if not is_keys_sorted_recursive(value):
+                        return False
+                return True
+            elif isinstance(obj, list):
+                # Listede dict varsa kontrol et
+                for item in obj:
+                    if not is_keys_sorted_recursive(item):
+                        return False
+                return True
+            return True
+        
+        result = subprocess.run(
+            ['python', '-m', 'json_formatter', '--compact', '--sort-keys', 'tests/data/sample.json'],
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode == 0
+        output = result.stdout.strip()
+        
+        # (a) Geçerli JSON olduğunu kontrol et (json.loads() ile parse et)
+        parsed = json.loads(output)
+        assert parsed is not None
+        
+        # (b) Parse ettikten sonra recursive olarak tüm nested objelerin anahtarlarının alfabetik sıralanmış olduğunu assert et
+        assert is_keys_sorted_recursive(parsed), f"Parsed object has unsorted keys: {parsed}"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
