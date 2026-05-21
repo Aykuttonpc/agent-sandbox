@@ -383,5 +383,21 @@ class TestJSONFormatter(unittest.TestCase):
                 if os.path.exists(fp):
                     os.unlink(fp)
 
+    # --- compact parametresi: format_json() üzerinden 2 yeni test ---
+
+    def test_format_json_compact_no_spaces(self):
+        """format_json: compact=True ile {"a": 1} → {"a":1} (boşluk yok)"""
+        from json_formatter import format_json
+        result = format_json('{"a": 1}', compact=True)
+        self.assertEqual(result, '{"a":1}')
+
+    def test_format_json_compact_overrides_indent(self):
+        """format_json: compact=True, indent=4 birlikte verildiğinde çıktı tek satır boşluksuz olmalı"""
+        from json_formatter import format_json
+        result = format_json('{"a": 1}', compact=True, indent=4)
+        self.assertNotIn('\n', result)
+        self.assertNotIn(' ', result)
+        self.assertEqual(result, '{"a":1}')
+
 if __name__ == '__main__':
     unittest.main()

@@ -20,6 +20,11 @@ def main():
     args = parser.parse_args()
     files = args.file  # nargs='*' → her zaman liste; boş liste stdin anlamına gelir
 
+    # --compact aktifken indent iletilmez; aksi hâlde kullanıcının seçtiği (ya da varsayılan) indent kullanılır
+    fmt_kwargs = dict(sort_keys=args.sort_keys, compact=args.compact, ensure_ascii=not args.unicode)
+    if not args.compact:
+        fmt_kwargs["indent"] = args.indent
+
     # --check stdin ile kullanılamaz
     if args.check and not files:
         print("Error: --check requires a file argument, not stdin", file=sys.stderr)
@@ -43,7 +48,7 @@ def main():
     if not files:
         data = sys.stdin.read()
         try:
-            result = format_json(data, indent=args.indent, sort_keys=args.sort_keys, compact=args.compact, ensure_ascii=not args.unicode)
+            result = format_json(data, **fmt_kwargs)
         except ValueError as e:
             print(f"Error: Invalid JSON - {e}", file=sys.stderr)
             sys.exit(1)
@@ -63,7 +68,7 @@ def main():
                 any_fail = True
                 continue
             try:
-                result = format_json(data, indent=args.indent, sort_keys=args.sort_keys, compact=args.compact, ensure_ascii=not args.unicode)
+                result = format_json(data, **fmt_kwargs)
             except ValueError as e:
                 print(f"FAIL: {filepath}")
                 print(f"Error: Invalid JSON in '{filepath}' - {e}", file=sys.stderr)
@@ -92,7 +97,7 @@ def main():
                 any_fail = True
                 continue
             try:
-                result = format_json(data, indent=args.indent, sort_keys=args.sort_keys, compact=args.compact, ensure_ascii=not args.unicode)
+                result = format_json(data, **fmt_kwargs)
             except ValueError as e:
                 print(f"Error: Invalid JSON in '{filepath}' - {e}", file=sys.stderr)
                 any_fail = True
@@ -123,7 +128,7 @@ def main():
         print(f"Error: File '{filepath}' not found", file=sys.stderr)
         sys.exit(1)
     try:
-        result = format_json(data, indent=args.indent, sort_keys=args.sort_keys, compact=args.compact, ensure_ascii=not args.unicode)
+        result = format_json(data, **fmt_kwargs)
     except ValueError as e:
         print(f"Error: Invalid JSON - {e}", file=sys.stderr)
         sys.exit(1)
