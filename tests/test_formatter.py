@@ -579,6 +579,74 @@ def test_unicode_true_preserves_non_ascii():
     assert 'değer' in result
 
 
+# --- YENİ TESTLER: Unicode desteği (beş test) ---
+
+def test_unicode_turkish():
+    """(1) Türkçe karakterler: --unicode bayrağı ile Turkish kelimeleri korunmalı."""
+    from json_formatter import format_json
+    data = '{"şehir": "İstanbul", "bölge": "Marmara"}'
+    result = format_json(data, unicode=True)
+    assert 'İstanbul' in result
+    assert 'şehir' in result
+    assert 'Marmara' in result
+    # unicode=False durumunda escape edilmeli
+    result_escaped = format_json(data, unicode=False)
+    assert '\\u' in result_escaped
+    assert 'İstanbul' not in result_escaped
+
+
+def test_unicode_emoji():
+    """(2) Emoji karakterleri: --unicode bayrağı ile emoji'ler korunmalı."""
+    from json_formatter import format_json
+    data = '{"emoji": "😀🎉🚀"}'
+    result = format_json(data, unicode=True)
+    assert '😀' in result
+    assert '🎉' in result
+    assert '🚀' in result
+    # unicode=False durumunda escape edilmeli
+    result_escaped = format_json(data, unicode=False)
+    assert '\\u' in result_escaped
+    assert '😀' not in result_escaped
+
+
+def test_unicode_cjk():
+    """(3) CJK (Çince, Japonca, Korece) karakterleri: --unicode bayrağı ile korunmalı."""
+    from json_formatter import format_json
+    data = '{"chinese": "中文", "japanese": "日本語", "korean": "한국어"}'
+    result = format_json(data, unicode=True)
+    assert '中文' in result
+    assert '日本語' in result
+    assert '한국어' in result
+    # unicode=False durumunda escape edilmeli
+    result_escaped = format_json(data, unicode=False)
+    assert '\\u' in result_escaped
+    assert '中文' not in result_escaped
+
+
+def test_unicode_arabic():
+    """(4) Arapça karakterleri: --unicode bayrağı ile korunmalı."""
+    from json_formatter import format_json
+    data = '{"arabic": "مرحبا"}'
+    result = format_json(data, unicode=True)
+    assert 'مرحبا' in result
+    # unicode=False durumunda escape edilmeli
+    result_escaped = format_json(data, unicode=False)
+    assert '\\u' in result_escaped
+    assert 'مرحبا' not in result_escaped
+
+
+def test_unicode_nested_object():
+    """(5) Nested nesne içindeki Unicode: --unicode bayrağı ile deeplerdeki karakterler korunmalı."""
+    from json_formatter import format_json
+    data = '{"user": {"ad": "Türkan", "şehir": "Ankara"}, "ülke": "Türkiye"}'
+    result = format_json(data, unicode=True)
+    assert 'Türkan' in result
+    assert 'Ankara' in result
+    assert 'Türkiye' in result
+    assert 'ü' in result
+    assert 'ş' in result
+
+
 # --- colorize_json yeni testleri (nesne tabanlı API) ---
 
 def test_colorize_json_key_contains_yellow():

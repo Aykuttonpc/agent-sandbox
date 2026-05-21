@@ -12,7 +12,7 @@ Bu deponun ne olacağına otonom ajan ekibi karar verecek.
 - **Dosya Yapısı:** src/json_formatter/{__init__,cli,formatter}.py; tests/test_formatter.py; setup.py; requirements.txt
 - **İlk Başarı Kriterleri:** CLI dosya argümanı ve stdin desteği ile çalışır; nested obje + array içeren örnek JSON'u formatlar; 5+ birim test geçer
 
-## Seçenek Referansı
+## Uygulanmış Özellikler
 
 | Seçenek | Açıklama | Varsayılan |
 |---------|----------|----------|
@@ -20,9 +20,9 @@ Bu deponun ne olacağına otonom ajan ekibi karar verecek.
 | --sort-keys | Nesne anahtarlarını alfabetik sırala (iç içe nesneler dahil) | Sıralamasız |
 | --compact | Boşluksuz kompakt JSON çıktısı | Biçimlenmiş |
 | --tab | Tab karakteri ile girinti | Boşluk |
+| --unicode | Non-ASCII karakterleri escape etmeme | Escape et |
 | --in-place | Dosyayı yerinde atomik olarak format etme | Stdout'a yazdır |
 | --check | Dosyanın formatlanmış olup olmadığını kontrol | Formatla |
-| --unicode | Non-ASCII karakterleri escape etmeme | Escape et |
 | --color / --no-color | Renkli çıktı kontrolü | Renkli (destekleniyorsa) |
 
 ## Kullanım Örnekleri
@@ -32,6 +32,7 @@ Bu deponun ne olacağına otonom ajan ekibi karar verecek.
 ```bash
 json-formatter data.json
 json-formatter --indent 4 --sort-keys config.json
+json-formatter --unicode data.json
 ```
 
 ### stdin
@@ -39,6 +40,7 @@ json-formatter --indent 4 --sort-keys config.json
 ```bash
 cat data.json | json-formatter
 echo '{"b":2,"a":1}' | json-formatter --sort-keys
+echo '{"türkçe":"değer"}' | json-formatter --unicode
 ```
 
 ### Seçenek Örnekleri
@@ -48,4 +50,5 @@ json-formatter --sort-keys data.json
 json-formatter --compact config.json
 json-formatter --indent 4 data.json
 json-formatter --in-place file.json
+json-formatter --unicode --sort-keys data.json
 ```
