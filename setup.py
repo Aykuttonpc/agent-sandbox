@@ -1,9 +1,11 @@
 import re
+import pathlib
 from setuptools import setup, find_packages
 
 version = re.search(
-    r'__version__ = ["\'](.+)["\']',
-    open("src/json_formatter/__init__.py").read()
+    r'^__version__\s*=\s*[\'"]([\'"^]+)[\'"]',
+    pathlib.Path("src/json_formatter/__init__.py").read_text(),
+    re.MULTILINE
 ).group(1)
 
 setup(

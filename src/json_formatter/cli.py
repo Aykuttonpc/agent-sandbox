@@ -3,12 +3,12 @@ import os
 import tempfile
 import argparse
 import glob as _glob
-from . import __version__
 from .formatter import JSONFormatter, format_json, colorize_json, is_already_formatted
 
 
 def build_parser():
     """Argüman ayrıştırıcıyı oluşturup döndürür."""
+    from json_formatter import __version__
     parser = argparse.ArgumentParser(description="Format JSON from file or stdin")
     parser.add_argument("file", nargs="*", help="JSON file(s) to format (optional, read from stdin if not provided)")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -58,7 +58,7 @@ def main():
     else:
         use_color = sys.stdout.isatty()
 
-    # --compact aktifken indent iletilmez; aksi hâlde kullanıcının seçtiği (ya da varsayılan) indent kullanılır
+    # --compact aktifken indent iletilmez; akşi hâlde kullanıcının seçtiği (ya da varsayılan) indent kullanılır
     fmt_kwargs = dict(sort_keys=args.sort_keys, compact=args.compact, unicode=args.unicode)
     if not args.compact:
         fmt_kwargs["indent"] = args.indent

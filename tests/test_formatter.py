@@ -305,7 +305,7 @@ class TestJSONFormatter(unittest.TestCase):
                     os.unlink(fp)
 
     def test_in_place_one_invalid_skips_and_exits_1(self):
-        """--in-place biri geçersiz JSON iken hatalı atlanır, geçerli yazılır, exit 1 döner"""
+        """--in-place biri geçersiz JSON iken hatlı atlanır, geçerli yazılır, exit 1 döner"""
         from json_formatter.cli import main
         files = []
         try:
@@ -441,6 +441,25 @@ def test_version_flag(capsys):
     assert exc_info.value.code == 0
     captured = capsys.readouterr()
     assert __version__ in captured.out
+
+
+def test_version_flag_exit_code_is_0(capsys):
+    """--version bayrağı SystemExit fırlatmalı ve exit kodu 0 olmalı."""
+    from json_formatter.cli import main
+    with patch('sys.argv', ['json-formatter', '--version']):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+    assert exc_info.value.code == 0
+
+
+def test_version_flag_output_contains_version_string(capsys):
+    """--version bayrağı çıktısında '0.1.0' string'i yer almalı."""
+    from json_formatter.cli import main
+    with patch('sys.argv', ['json-formatter', '--version']):
+        with pytest.raises(SystemExit):
+            main()
+    captured = capsys.readouterr()
+    assert "0.1.0" in captured.out
 
 
 # --- compact parametresi ve mutually exclusive grup testleri ---
