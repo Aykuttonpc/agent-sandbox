@@ -459,5 +459,45 @@ def test_version_flag(capsys):
     assert __version__ in captured.out
 
 
+# --- YENİ: compact parametresi ve mutually exclusive grup testleri ---
+
+def test_compact_true_no_space_no_newline():
+    """format_json('{"a":1}', compact=True) çıktısı ' ' ve '\\n' içermemeli (iki ayrı assert)."""
+    from json_formatter import format_json
+    result = format_json('{"a":1}', compact=True)
+    assert ' ' not in result
+    assert '\n' not in result
+
+
+def test_compact_false_preserves_default_behavior():
+    """format_json('{"a":1}', compact=False) varsayılan davranışı bozmamalı."""
+    from json_formatter import format_json
+    result_explicit = format_json('{"a":1}', compact=False)
+    result_default = format_json('{"a":1}')
+    assert result_explicit == result_default
+    # Varsayılan çıktı girintili (newline içeren) olmalı
+    assert '\n' in result_explicit
+
+
+def test_compact_color_integration_no_newline():
+    """compact=True çıktısına colorize_json uygulandığında sonuç '\\n' içermemeli."""
+    from json_formatter import format_json
+    from json_formatter.formatter import colorize_json
+    compact_result = format_json('{"a":1}', compact=True)
+    # compact çıktı zaten newline içermemeli
+    assert '\n' not in compact_result
+    # colorize_json uygulandıktan sonra da newline olmamalı
+    colored = colorize_json(compact_result)
+    assert '\n' not in colored
+
+
+def test_build_parser_compact_and_indent_mutually_exclusive_exits_2():
+    """build_parser().parse_args(['--compact', '--indent', '4']) → SystemExit(2) fırlatmalı."""
+    from json_formatter.cli import build_parser
+    with pytest.raises(SystemExit) as exc_info:
+        build_parser().parse_args(['--compact', '--indent', '4'])
+    assert exc_info.value.code == 2
+
+
 if __name__ == '__main__':
     unittest.main()
