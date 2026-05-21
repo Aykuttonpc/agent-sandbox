@@ -1,6 +1,7 @@
 import unittest
 import os
 import tempfile
+import pytest
 from io import StringIO
 from unittest.mock import patch
 from json_formatter import JSONFormatter
@@ -398,6 +399,17 @@ class TestJSONFormatter(unittest.TestCase):
         self.assertNotIn('\n', result)
         self.assertNotIn(' ', result)
         self.assertEqual(result, '{"a":1}')
+
+
+# --- Bağımsız pytest testi ---
+
+def test_invalid_json_error_message_contains_location():
+    from json_formatter import format_json
+    with pytest.raises(ValueError) as exc_info:
+        format_json("{invalid")
+    msg = str(exc_info.value)
+    assert "line" in msg and "column" in msg
+
 
 if __name__ == '__main__':
     unittest.main()
