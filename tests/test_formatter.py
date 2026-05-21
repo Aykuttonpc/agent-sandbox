@@ -630,5 +630,62 @@ def test_in_place_and_check_mutually_exclusive_exits_2(tmp_path):
     assert exc_info.value.code == 2
 
 
+# ============================================================
+# YENİ TESTLER: glob genişlemesi desteği
+# ============================================================
+
+def test_check_glob_pattern_all_formatted_exits_0(tmp_path):
+    """
+    (1) Geçici dizinde iki biçimlendirilmiş .json dosyası oluşturup
+    --check '*.json' glob kalıbıyla çalıştırıldığında exit code 0 dönmeli.
+    recursive=True sayesinde '**' kalıpları da desteklenir.
+    """
+    from json_formatter.cli import main
+    from json_formatter import format_json
+
+    # Her iki dosyayı da önceden formatlanmış hâlde yaz
+    for name, raw in [("first.json", '{"x":1}'), ("second.json", '{"y":2}')]:
+        formatted = format_json(raw)
+        (tmp_path / name).write_text(formatted)
+
+    # Glob kalıbını tmp_path içindeki tüm .json dosyalarına yönelik ver
+    glob_pattern = str(tmp_path / "*.json")
+    with patch('sys.argv', ['json-formatter', '--check', glob_pattern]):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+    assert exc_info.value.code == 0
+
+
+def test_in_place_glob_pattern_formats_all_files(tmp_path):
+    """
+    (2) Geçici dizinde iki biçimsiz .json dosyası oluşturup
+    --in-place '*.json' glob kalıbıyla çalıştırıldıktan sonra
+    her iki dosya içeriğinin de düzgün formatlandığı doğrulanmalı.
+    recursive=True sayesinde '**' kalıpları da desteklenir.
+    """
+    from json_formatter.cli import main
+
+    # İki formatlanmamış JSON dosyası yaz
+    (tmp_path / "alpha.json").write_text('{"b":2,"a":1}')
+    (tmp_path / "beta.json").write_text('{"z":9,"m":5}')
+
+    glob_pattern = str(tmp_path / "*.json")
+    with patch('sys.argv', ['json-formatter', '--in-place', glob_pattern]):
+        main()
+
+    alpha = (tmp_path / "alpha.json").read_text()
+    beta  = (tmp_path / "beta.json").read_text()
+
+    # alpha.json düzgün formatlanmış olmalı
+    assert '"b": 2' in alpha
+    assert '"a": 1' in alpha
+    assert '\n' in alpha
+
+    # beta.json düzgün formatlanmış olmalı
+    assert '"z": 9' in beta
+    assert '"m": 5' in beta
+    assert '\n' in beta
+
+
 if __name__ == '__main__':
     unittest.main()

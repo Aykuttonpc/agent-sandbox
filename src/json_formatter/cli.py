@@ -2,6 +2,7 @@ import sys
 import os
 import tempfile
 import argparse
+import glob as _glob
 from . import __version__
 from .formatter import JSONFormatter, format_json, colorize_json, is_already_formatted
 
@@ -36,6 +37,15 @@ def main():
     parser = build_parser()
     args = parser.parse_args()
     files = args.file  # nargs='*' → her zaman liste; boş liste stdin anlamına gelir
+
+    # Glob genişlemesi: '*.json' veya '**/*.json' gibi kalıpları eşleşen dosya
+    # yollarına dönüştür. recursive=True bilerek korunur — '**' kalıp desteği
+    # (alt dizinlerdeki dosyaları da taramak) için bu bayrak zorunludur.
+    expanded = []
+    for pattern in files:
+        matches = sorted(_glob.glob(pattern, recursive=True))
+        expanded.extend(matches if matches else [pattern])
+    files = expanded
 
     # Renk kararı: --color zorla aç, --no-color zorla kapat, varsayılan isatty()
     # --in-place veya --check aktifse renklendirme atlanır
