@@ -246,6 +246,18 @@ class TestJSONFormatter(unittest.TestCase):
         finally:
             os.unlink(tmp_path)
 
+    def test_sort_keys_a_before_b_with_compact_input(self):
+        """(1) format_json('{"b":2,"a":1}', sort_keys=True) çıktısında 'a' anahtarı 'b'den önce gelmeli"""
+        from json_formatter import format_json
+        result = format_json('{"b":2,"a":1}', sort_keys=True)
+        self.assertLess(result.index('"a"'), result.index('"b"'))
+
+    def test_sort_keys_compact_no_spaces_sorted_output(self):
+        """(2) format_json('{"b":2,"a":1}', sort_keys=True, compact=True) → '{"a":1,"b":2}' (boşluksuz, sıralı)"""
+        from json_formatter import format_json
+        result = format_json('{"b":2,"a":1}', sort_keys=True, compact=True)
+        self.assertEqual(result, '{"a":1,"b":2}')
+
     # --- --unicode / ensure_ascii testleri ---
 
     def test_ensure_ascii_default_escapes_non_ascii(self):
