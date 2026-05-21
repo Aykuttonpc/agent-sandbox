@@ -512,25 +512,25 @@ class TestJSONFormatter(unittest.TestCase):
         self.assertEqual(result, expected)
 
 
-# --- YENİ TESTLER: is_formatted() fonksiyonu (dört test) ---
+# --- YENİ TESTLER: is_formatted() fonksiyonu (beş test) ---
 
-def test_is_formatted_default_indented_true():
-    """(1) Default olarak biçimlenmiş JSON → is_formatted(...) True döndürmeli.
+def test_is_formatted_true_default():
+    """(1) Varsayılan parametrelerle biçimlendirilmiş JSON → is_formatted(...) True döndürmeli.
     
-    Örneğin, indent=2, sort_keys=False, unicode_escape=True, compact=False, use_tabs=False
-    (tümü varsayılan) olan biçimlendirilmiş JSON.
+    indent=2, sort_keys=False, compact=False, tab=False, unicode_=False
+    (tümü varsayılan) olan biçimlenmiş JSON.
     """
     from json_formatter.formatter import is_formatted
     from json_formatter import format_json
-    # Önce bir JSON'ı formatla
+    # Önce bir JSON'ı varsayılan parametrelerle formatla
     raw = '{"name":"John","age":30}'
     formatted = format_json(raw)  # Default parametrelerle formatla
     # Şimdi bu formatlanmış JSON'un kendisi formatlanmış olup olmadığını kontrol et
     assert is_formatted(formatted) is True
 
 
-def test_is_formatted_compact_json_false():
-    """(2) Kompakt JSON (boşluksuz) → is_formatted(...) False döndürmeli.
+def test_is_formatted_false_default():
+    """(2) Kompakt/formatlanmamış JSON → is_formatted(...) False döndürmeli.
     
     Çünkü varsayılan parametreler ile formatlanmamıştır (indent=2 bekleniyor).
     """
@@ -542,41 +542,67 @@ def test_is_formatted_compact_json_false():
     assert is_formatted(compact_data, compact=True) is True
 
 
-def test_is_formatted_sort_keys_false():
-    """(3) Sort-keys olmayan sıra → sort_keys=True ile is_formatted False döndürmeli.
+def test_is_formatted_true_with_options():
+    """(3) indent=4, sort_keys=True ile biçimlenmiş JSON → is_formatted True döndürmeli.
     
-    {"b": 1, "a": 2} alfabetik sırada değildir, bu yüzden
-    is_formatted(..., sort_keys=True) False döner.
-    """
-    from json_formatter.formatter import is_formatted
-    data = '{"b": 1, "a": 2}'  # b, a sırasında (alfabetik değil)
-    # sort_keys=False (varsayılan) ile: False çünkü "a" ve "b" sırası beklenmez
-    # Daha doğrusu: bu string varsayılan parametrelerle formatlanmamış çünkü
-    # format_json ile formatlandığında sorted sırasına gelmeyebilir
-    # Ama sort_keys=True ile istersek, output {"a": 2, "b": 1} olur
-    formatted_with_sort = '{"a": 2, "b": 1}'  # sort_keys=True ile
-    assert is_formatted(data, sort_keys=True) is False  # Çünkü data sıralı değil
-    assert is_formatted(formatted_with_sort, sort_keys=True) is True
-
-
-def test_is_formatted_unicode_escape_false_true():
-    """(4) Unicode karakterleri korunmuş JSON → unicode_escape=False ile True döndürmeli.
-    
-    unicode_escape=False ↔ unicode=True (ters mantık)
-    İçeride ü karakteri korunmuş olan JSON.
+    format_json(..., indent=4, sort_keys=True) ile formatlanmış JSON'un
+    is_formatted(..., indent=4, sort_keys=True) True döndürmesi gerekir.
     """
     from json_formatter.formatter import is_formatted
     from json_formatter import format_json
-    # Unicode karakteri korunmuş JSON
-    data_unicode = '{"key": "ü"}'
-    # format_json(..., unicode=True) ile formatla
-    formatted = format_json(data_unicode, unicode=True)
-    # Şimdi is_formatted(..., unicode_escape=False) True döndürmeli
-    # Çünkü unicode_escape=False → unicode=True
-    assert is_formatted(formatted, unicode_escape=False) is True
-    # Ama unicode_escape=True (varsayılan) ile False
-    # Çünkü karakterler escape edilmiş olmalı
-    assert is_formatted(formatted, unicode_escape=True) is False
+    raw = '{"z":9,"a":1}'
+    # indent=4, sort_keys=True ile formatla
+    formatted = format_json(raw, indent=4, sort_keys=True)
+    # Aynı parametrelerle kontrol et
+    assert is_formatted(formatted, indent=4, sort_keys=True) is True
+
+
+def test_is_formatted_false_with_options():
+    """(4) indent=4, sort_keys=True parametrelerine uygun olmayan JSON → False döndürmeli.
+    
+    Örneğin, indent=2 ile formatlanmış JSON, indent=4 ile kontrol edilirse False döner.
+    """
+    from json_formatter.formatter import is_formatted
+    from json_formatter import format_json
+    raw = '{"z":9,"a":1}'
+    # Varsayılan (indent=2) ile formatla
+    formatted = format_json(raw)
+    # indent=4 ile kontrol et (uyuşmaz)
+    assert is_formatted(formatted, indent=4, sort_keys=True) is False
+
+
+def test_check_flag():
+    """(5) subprocess ile --check bayrağı test: formatlanmış dosya exit 0, formatlanmamış exit 1 dönmeli."""
+    import sys
+    from json_formatter import format_json
+    # Formatlanmış dosya yarat
+    formatted_content = format_json('{"b":2,"a":1}')
+    with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
+        f.write(formatted_content)
+        formatted_path = f.name
+    # Formatlanmamış dosya yarat
+    with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
+        f.write('{"b":2,"a":1}')
+        unformatted_path = f.name
+    try:
+        # --check ile formatlanmış dosya
+        result_formatted = subprocess.run(
+            [sys.executable, '-m', 'json_formatter', '--check', formatted_path],
+            capture_output=True,
+            text=True,
+        )
+        assert result_formatted.returncode == 0, "Formatlanmış dosya exit 0 döndürmeli"
+        # --check ile formatlanmamış dosya
+        result_unformatted = subprocess.run(
+            [sys.executable, '-m', 'json_formatter', '--check', unformatted_path],
+            capture_output=True,
+            text=True,
+        )
+        assert result_unformatted.returncode == 1, "Formatlanmamış dosya exit 1 döndürmeli"
+        assert 'not formatted' in result_unformatted.stderr, "stderr'de 'not formatted' mesajı olmalı"
+    finally:
+        os.unlink(formatted_path)
+        os.unlink(unformatted_path)
 
 
 # --- Bağımsız pytest testleri ---
@@ -717,7 +743,6 @@ def test_is_already_formatted_compact_mode_true_and_false():
 def test_check_subprocess_unformatted_file_exits_1_stderr_not_formatted():
     """(5) subprocess --check ile formatlanmamış dosyada returncode==1, stderr 'not formatted' içermeli."""
     import sys
-    import tempfile
     with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
         f.write('{"b":2,"a":1}')
         tmp_path = f.name
