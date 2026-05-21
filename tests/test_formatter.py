@@ -478,6 +478,39 @@ class TestJSONFormatter(unittest.TestCase):
         finally:
             os.unlink(tmp_path)
 
+    def test_empty_containers(self):
+        """Boş container'ları (nesne, liste) düzgün formatla: {} ve [] tek satırda, nested {} de tutarlı"""
+        formatter = JSONFormatter()
+        
+        # Case 1: Boş nesne "{}" varsayılan formatla
+        data1 = '{}'
+        result1 = formatter.format(data1)
+        expected1 = '{}'
+        self.assertEqual(result1, expected1)
+        
+        # Case 2: Boş liste "[]" varsayılan formatla
+        data2 = '[]'
+        result2 = formatter.format(data2)
+        expected2 = '[]'
+        self.assertEqual(result2, expected2)
+        
+        # Case 3: Nested boş nesne
+        data3 = '{"a":{}}'
+        result3 = formatter.format(data3)
+        # Beklenen format: {\n  "a": {}\n}
+        expected3 = '{\n  "a": {}\n}'
+        self.assertEqual(result3, expected3)
+
+    def test_empty_containers_compact(self):
+        """Boş nesne compact modda boşluksuz döndürülmeli"""
+        formatter = JSONFormatter(compact=True)
+        
+        # Boş nesne compact=True ile
+        data = '{}'
+        result = formatter.format(data)
+        expected = '{}'
+        self.assertEqual(result, expected)
+
 
 # --- YENİ TESTLER: is_formatted() fonksiyonu (dört test) ---
 
@@ -512,7 +545,7 @@ def test_is_formatted_compact_json_false():
 def test_is_formatted_sort_keys_false():
     """(3) Sort-keys olmayan sıra → sort_keys=True ile is_formatted False döndürmeli.
     
-    {"b": 1, "a": 2} alfabetik sıradadef değildir, bu yüzden
+    {"b": 1, "a": 2} alfabetik sırada değildir, bu yüzden
     is_formatted(..., sort_keys=True) False döner.
     """
     from json_formatter.formatter import is_formatted
