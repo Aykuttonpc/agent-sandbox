@@ -14,10 +14,19 @@ class JSONFormatter:
         self.separators = separators
 
     def format(self, data: str) -> str:
-        obj = json.loads(data)  # JSONDecodeError raise et
-        
+        try:
+            obj = json.loads(data)
+        except json.JSONDecodeError as e:
+            raise json.JSONDecodeError(
+                f"Geçersiz JSON: satır {e.lineno}, sütun {e.colno}: {e.msg}",
+                e.doc,
+                e.pos
+            ) from None
+        except ValueError:
+            raise
+
         separators = self.separators if self.separators else ((',', ':') if self.compact else (', ', ': '))
-        
+
         if self.compact:
             return json.dumps(obj, separators=separators, indent=None, sort_keys=self.sort_keys, ensure_ascii=self.ensure_ascii)
         return json.dumps(obj, separators=separators, indent=self.indent, sort_keys=self.sort_keys, ensure_ascii=self.ensure_ascii)

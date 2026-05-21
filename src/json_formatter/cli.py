@@ -108,8 +108,8 @@ def main():
         data = sys.stdin.read()
         try:
             result = format_json(data, **fmt_kwargs)
-        except json.JSONDecodeError:
-            print("Invalid JSON", file=sys.stderr)
+        except json.JSONDecodeError as e:
+            print(e.msg, file=sys.stderr)
             sys.exit(1)
         if use_color:
             result = colorize_json(result)
@@ -140,8 +140,11 @@ def main():
             # Geçersiz JSON: is_formatted() ile karıştırmadan önce ayrıca kontrol et
             try:
                 json.loads(data)
-            except json.JSONDecodeError:
-                print("Invalid JSON", file=sys.stderr)
+            except json.JSONDecodeError as e:
+                print(
+                    f"Geçersiz JSON: satır {e.lineno}, sütun {e.colno}: {e.msg}",
+                    file=sys.stderr
+                )
                 any_fail = True
                 continue
 
@@ -176,8 +179,8 @@ def main():
 
             try:
                 result = format_json(data, **fmt_kwargs)
-            except json.JSONDecodeError:
-                print(f"Invalid JSON", file=sys.stderr)
+            except json.JSONDecodeError as e:
+                print(e.msg, file=sys.stderr)
                 any_fail = True
                 continue
 
@@ -217,8 +220,8 @@ def main():
 
     try:
         result = format_json(data, **fmt_kwargs)
-    except json.JSONDecodeError:
-        print("Invalid JSON", file=sys.stderr)
+    except json.JSONDecodeError as e:
+        print(e.msg, file=sys.stderr)
         sys.exit(1)
 
     if use_color:

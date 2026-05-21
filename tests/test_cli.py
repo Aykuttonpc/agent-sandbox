@@ -167,14 +167,15 @@ class TestCLICheckMode:
         assert "File is not formatted" in result.stdout
 
     def test_check_invalid_json_file_returns_exit_1(self):
-        """Geçersiz JSON dosyası --check ile exit code 1 ve stderr'da 'Invalid JSON' döndürmeli."""
+        """Geçersiz JSON dosyası --check ile exit code 1 ve stderr'da 'satır'/'sütun' içeren mesaj döndürmeli."""
         result = subprocess.run(
             ['python', '-m', 'json_formatter', '--check', 'tests/data/invalid.json'],
             capture_output=True,
             text=True
         )
         assert result.returncode == 1
-        assert "Invalid JSON" in result.stderr
+        assert "satır" in result.stderr
+        assert "sütun" in result.stderr
 
 
 class TestCLICheck:
@@ -242,14 +243,15 @@ class TestCLIInvalidJSON:
     """Invalid JSON dosyası ile test et."""
 
     def test_cli_invalid_json_exit_code(self):
-        """Invalid JSON dosyası ile çalıştır, returncode==1 ve stderr'da 'Invalid JSON' mesajı assert et."""
+        """Invalid JSON dosyası ile çalıştır, returncode==1 ve stderr'da 'satır'/'sütun' mesajı assert et."""
         result = subprocess.run(
             ['python', '-m', 'json_formatter', 'tests/data/invalid.json'],
             capture_output=True,
             text=True
         )
         assert result.returncode == 1
-        assert "Invalid JSON" in result.stderr
+        assert "satır" in result.stderr
+        assert "sütun" in result.stderr
 
 
 class TestCLIInPlace(unittest.TestCase):
@@ -290,7 +292,8 @@ class TestCLIInPlace(unittest.TestCase):
                 capture_output=True, text=True
             )
             assert result.returncode == 1
-            assert "Invalid JSON" in result.stderr
+            assert "satır" in result.stderr
+            assert "sütun" in result.stderr
             with open(temp_path, 'r') as f:
                 content = f.read()
             assert content == invalid_json
